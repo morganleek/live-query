@@ -1,0 +1,203 @@
+<?php
+/**
+ * REST API Handler for Project Filters
+ */
+
+// Exit if accessed directly
+if (!defined('ABSPATH')) {
+    exit;
+}
+
+class Project_Filters_API {
+
+    /**
+     * Register REST API routes
+     */
+    public function register_routes() {
+        // Get filtered projects
+        register_rest_route('project-filters/v1', '/projects', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_projects'),
+            'permission_callback' => '__return_true',
+            'args' => array(
+                'page' => array(
+                    'default' => 1,
+                    'sanitize_callback' => 'absint',
+                ),
+                'per_page' => array(
+                    'default' => 6,
+                    'sanitize_callback' => 'absint',
+                ),
+                'service' => array(
+                    'default' => '',
+                    'sanitize_callback' => 'sanitize_text_field',
+                ),
+                'industry' => array(
+                    'default' => '',
+                    'sanitize_callback' => 'sanitize_text_field',
+                ),
+            ),
+        ));
+
+        // Get all service taxonomy terms
+        register_rest_route('project-filters/v1', '/services', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_services'),
+            'permission_callback' => '__return_true',
+        ));
+
+        // Get all industry taxonomy terms
+        register_rest_route('project-filters/v1', '/industries', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_industries'),
+            'permission_callback' => '__return_true',
+        ));
+    }
+
+    /**
+     * Get filtered projects
+     */
+    public function get_projects($request) {
+        $page = $request->get_param('page');
+        $per_page = $request->get_param('per_page');
+        $service = $request->get_param('service');
+        $industry = $request->get_param('industry');
+        $exclude = $request->get_param('exclude');
+
+        // Build query args
+        $args = array(
+            'post_type' => 'project',
+            'posts_per_page' => $per_page,
+            'paged' => $page,
+            'post_status' => 'publish',
+            'orderby' => 'date',
+            'order' => 'DESC',
+        );
+
+        // Check if there is a post to exclude
+        // i.e. on a single project page
+        if (!empty($exclude)) {
+            $args['post__not_in'] = [$exclude];
+            $args['orderby'] = 'rand';
+        }
+
+        // Add tax query if filters are set
+        $tax_query = array();
+
+        if (!empty($service)) {
+            $tax_query[] = array(
+                'taxonomy' => 'service',
+                'field' => 'slug',
+                'terms' => $service,
+            );
+        }
+
+        if (!empty($industry)) {
+            $tax_query[] = array(
+                'taxonomy' => 'industry',
+                'field' => 'slug',
+                'terms' => $industry,
+            );
+        }
+
+        if (!empty($tax_query)) {
+            $args['tax_query'] = $tax_query;
+            if (count($tax_query) > 1) {
+                $args['tax_query']['relation'] = 'AND';
+            }
+        }
+
+        // Execute query
+        $query = new WP_Query($args);
+        $projects = array();
+
+        if ($query->have_posts()) {
+            while ($query->have_posts()) {
+                $query->the_post();
+                $post_id = get_the_ID();
+
+                // Get featured image
+                $featured_image = '';
+                if (has_post_thumbnail($post_id)) {
+                    $featured_image = get_the_post_thumbnail_url($post_id, 'full');
+                }
+
+                // Get taxonomies
+                $services = wp_get_post_terms($post_id, 'service', array('fields' => 'names'));
+                $industries = wp_get_post_terms($post_id, 'industry', array('fields' => 'names'));
+
+                $projects[] = array(
+                    'id' => $post_id,
+                    'title' => get_the_title(),
+                    'excerpt' => str_replace( " [&hellip;]", "", get_the_excerpt() ),
+                    'content' => get_the_content(),
+                    'link' => get_permalink(),
+                    'featured_image' => $featured_image,
+                    'services' => $services,
+                    'industries' => $industries,
+                    'date' => get_the_date('c'),
+                );
+            }
+            wp_reset_postdata();
+        }
+
+        return new WP_REST_Response(array(
+            'projects' => $projects,
+            'total' => $query->found_posts,
+            'total_pages' => $query->max_num_pages,
+            'current_page' => $page,
+        ), 200);
+    }
+
+    /**
+     * Get all service terms
+     */
+    public function get_services($request) {
+        $terms = get_terms(array(
+            'taxonomy' => 'service',
+            'hide_empty' => false,
+        ));
+
+        if (is_wp_error($terms)) {
+            return new WP_REST_Response(array('services' => array()), 200);
+        }
+
+        $services = array();
+        foreach ($terms as $term) {
+            $services[] = array(
+                'id' => $term->term_id,
+                'name' => $term->name,
+                'slug' => $term->slug,
+                'count' => $term->count,
+            );
+        }
+
+        return new WP_REST_Response(array('services' => $services), 200);
+    }
+
+    /**
+     * Get all industry terms
+     */
+    public function get_industries($request) {
+        $terms = get_terms(array(
+            'taxonomy' => 'industry',
+            'hide_empty' => false,
+        ));
+
+        if (is_wp_error($terms)) {
+            return new WP_REST_Response(array('industries' => array()), 200);
+        }
+
+        $industries = array();
+        foreach ($terms as $term) {
+            $industries[] = array(
+                'id' => $term->term_id,
+                'name' => $term->name,
+                'slug' => $term->slug,
+                'count' => $term->count,
+            );
+        }
+
+        return new WP_REST_Response(array('industries' => $industries), 200);
+    }
+}
