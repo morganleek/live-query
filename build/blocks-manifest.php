@@ -4,12 +4,12 @@ return array(
 	'filter-projects' => array(
 		'$schema' => 'https://schemas.wp.org/trunk/block.json',
 		'apiVersion' => 3,
-		'name' => 'creative-spaces/filter-projects',
+		'name' => 'six-character-media/everything-filter',
 		'version' => '1.0.0',
-		'title' => 'Filter Projects',
+		'title' => 'Everything Filter',
 		'category' => 'widgets',
-		'icon' => 'clipboard',
-		'description' => 'Custom block for Creative Spaces',
+		'icon' => 'grid-view',
+		'description' => '',
 		'example' => array(
 			
 		),
@@ -17,6 +17,14 @@ return array(
 			'html' => false
 		),
 		'attributes' => array(
+			'postType' => array(
+				'type' => 'string',
+				'default' => ''
+			),
+			'restEndpoint' => array(
+				'type' => 'string',
+				'default' => ''
+			),
 			'limit' => array(
 				'type' => 'integer',
 				'default' => 6
@@ -29,12 +37,18 @@ return array(
 				'type' => 'integer',
 				'default' => 1
 			),
+			'filters' => array(
+				'type' => 'array',
+				'default' => array(
+					
+				)
+			),
 			'showProjectsLink' => array(
 				'type' => 'integer',
 				'default' => 1
 			)
 		),
-		'textdomain' => 'filter-projects',
+		'textdomain' => 'everything-filter',
 		'editorScript' => 'file:./index.js',
 		'editorStyle' => 'file:./index.css',
 		'style' => 'file:./style-index.css',

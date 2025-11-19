@@ -5,8 +5,8 @@ import apiFetch from '@wordpress/api-fetch';
 import { addQueryArgs, getQueryArgs, removeQueryArgs } from '@wordpress/url';
 import Select from 'react-select';
 
-const ProjectFilters = ( { limit, moreButton, showFilter, showProjectsLink, initService, initIndustry } ) => {
-	const [projects, setProjects] = useState([]);
+const EverythingFilter = ( { postType, restEndpoint, limit, moreButton, showFilter, showProjectsLink, initService, initIndustry } ) => {
+	const [posts, setPosts] = useState([]);
 	const [services, setServices] = useState([]);
 	const [industries, setIndustries] = useState([]);
 	const [selectedService, setSelectedService] = useState( initService );
@@ -26,65 +26,64 @@ const ProjectFilters = ( { limit, moreButton, showFilter, showProjectsLink, init
 
 
 	// Fetch taxonomies on mount
-
-	useEffect(() => {
-		fetchTaxonomies();
-	}, []);
+	// useEffect(() => {
+	// 	fetchTaxonomies();
+	// }, []);
 
 	// Fetch projects when filters change
 	useEffect(() => {
-		fetchProjects(1, false);
-		setUpdatedURL();
+		if( postType && restEndpoint ) {
+			fetchPosts(1, false);
+			// setUpdatedURL();
+		}
 	}, [selectedService, selectedIndustry]);
 	
 
-	const fetchTaxonomies = async () => {
-		apiFetch( { 
-			path: '/project-filters/v1/services' // addQueryArgs( '/services', queryParams )
-		} ).then( ( data ) => {
-			setServices( data.services || [] );
-		} );
+	// const fetchTaxonomies = async () => {
+	// 	apiFetch( { 
+	// 		path: '/project-filters/v1/services' // addQueryArgs( '/services', queryParams )
+	// 	} ).then( ( data ) => {
+	// 		setServices( data.services || [] );
+	// 	} );
 
-		apiFetch( { 
-			path: '/project-filters/v1/industries' // addQueryArgs( '/industries', queryParams )
-		} ).then( ( data ) => {
-			setIndustries( data.industries || [] );
-		} );
-	};
+	// 	apiFetch( { 
+	// 		path: '/project-filters/v1/industries' // addQueryArgs( '/industries', queryParams )
+	// 	} ).then( ( data ) => {
+	// 		setIndustries( data.industries || [] );
+	// 	} );
+	// };
 
-	const fetchProjects = async (page = 1, append = false) => {
+	const fetchPosts = async (page = 1, append = false) => {
 		setLoading(true);
 
-		const exclude = document.body.classList.contains( 'single-project' )
+		const exclude = document.body.classList.contains( 'single' )
 		const postId = document.body.attributes.class.value.match( /postid-(\d+)/ );
 
 		try {
 			const params = {
 				page: page,
 				per_page: perPage,
+				post_type: postType,
 				...( exclude && postId && { exclude: postId[1] } )
 			};
 
-			if (selectedService) {
-				params.service = selectedService;
-			}
-			if (selectedIndustry) {
-				params.industry = selectedIndustry;
-			}
+			// add taxonomies
+			// if (selectedService) {
+			// 	params.service = selectedService;
+			// }
+			// if (selectedIndustry) {
+			// 	params.industry = selectedIndustry;
+			// }
 
 			apiFetch( { 
-				path: addQueryArgs( '/project-filters/v1/projects', params )
-			} ).then( ( data ) => {
-				if (append) {
-					setProjects(prev => [...prev, ...data.projects]);
-				} else {
-					setProjects(data.projects);
-				}
-				
-				setTotalPages(data.total_pages);
-				setTotalProjects(data.total);
-				setCurrentPage(page);
-				setInitialLoad(false);
+				path: addQueryArgs( "everything-filter/v1/posts", params )
+			} ).then( ( res ) => {
+				setTotalPages( parseInt( res.total_pages ) );
+				setTotalProjects( parseInt( res.total ) );
+				setCurrentPage( page );
+				setInitialLoad( false );
+				setPosts( res.posts );
+				// return res.json();
 			} );
 		} catch (error) {
 			console.error('Error fetching projects:', error);
@@ -95,7 +94,7 @@ const ProjectFilters = ( { limit, moreButton, showFilter, showProjectsLink, init
 
 	const handleLoadMore = () => {
 		if ( currentPage < totalPages ) {
-			fetchProjects( currentPage + 1, true );
+			fetchPosts( currentPage + 1, true );
 		}
 	};
 
@@ -133,14 +132,14 @@ const ProjectFilters = ( { limit, moreButton, showFilter, showProjectsLink, init
 	const hasMoreProjects = currentPage < totalPages;
 
 	return (
-		<div className={ `project-filters-container projects-limit-${perPage}` }>
+		<div className={ `posts-filters-container posts-limit-${perPage}` }>
 			{ ( showFilter || showProjectsLink ) && (
-				<div className="projects-header">
-					{ showFilter && industries.length > 0 && services.length > 0 && (
-						<div className="project-filters-controls">
+				<div className="posts-header">
+					{/* { showFilter && industries.length > 0 && services.length > 0 && (
+						<div className="posts-filters-controls">
 							<div className="filter-group">
 								{!initialLoad && (
-									<span className="projects-results">Showing {projects.length} projects in</span>
+									<span className="posts-results">Showing {posts.length} posts in</span>
 								)}
 								<Select
 									className="service-filter"
@@ -172,18 +171,8 @@ const ProjectFilters = ( { limit, moreButton, showFilter, showProjectsLink, init
 								/>
 								
 							</div>
-
-							{/* {hasActiveFilters && (
-								<button
-									className="reset-filters-btn"
-									onClick={handleReset}
-									disabled={loading}
-								>
-									Reset Filters
-								</button>
-							)} */}
 						</div>
-					) }
+					) } */}
 					{ showProjectsLink && (
 						<div class="wp-block-buttons is-content-justification-center is-layout-flex wp-block-buttons-is-layout-flex">
 							<div class="wp-block-button is-style-minimal">
@@ -194,45 +183,46 @@ const ProjectFilters = ( { limit, moreButton, showFilter, showProjectsLink, init
 				</div>
 			) }
 
-			{ loading && projects.length === 0 ? (
+			{ loading && posts.length === 0 ? (
 				<div className="project-loading">
-					<p>Loading projects...</p>
+					<p>Loading posts...</p>
 				</div>
-			) : projects.length === 0 ? (
+			) : posts.length === 0 ? (
 				<div className="project-no-results">
-					<p>No projects found matching your criteria.</p>
+					<p>No posts found matching your criteria.</p>
 				</div>
 			) : (
 				<>
 					<div className="project-grid">
-						{projects.map(project => (
-							<div key={project.id} className="project-card">
-								{project.featured_image && (
-									<div className="project-image">
-										<a href={project.link}>
+						{posts.map(post => (
+							<div key={post.id} className="post-card">
+								{post.featured_image && (
+									<div className="post-image">
+										<a href={post.link}>
 											<img 
-												src={project.featured_image} 
-												alt={project.title} 
-												className={ loadedImages[project.id] ? 'has-loaded' : '' }
+												src={post.featured_image} 
+												alt={post.title} 
+												className={ loadedImages[post.id] ? 'has-loaded' : '' }
 												loading="lazy"
-												onLoad={ () => handleImageLoad( project.id ) }
+												onLoad={ () => handleImageLoad( post.id ) }
 											/>
+											{ post.featured_media }
 										</a>
 									</div>
 								)}
-								<div className="project-content">
-									<h6 className="project-title">
-										<a href={project.link}>{project.title}</a>
+								<div className="post-content">
+									<h6 className="post-title">
+										<a href={post.link}>{post.title}</a>
 									</h6>
 
-									{project.excerpt && (
+									{post.excerpt && (
 										<div
-											className="project-excerpt"
-											dangerouslySetInnerHTML={{ __html: project.excerpt }}
+											className="post-excerpt"
+											dangerouslySetInnerHTML={{ __html: post.excerpt }}
 										/>
 									)}
-									<a href={project.link} className="project-link">
-										<span className="label">explore the project</span>
+									<a href={post.link} className="post-link">
+										<span className="label">explore the post</span>
 									</a>
 								</div>
 							</div>
@@ -248,7 +238,7 @@ const ProjectFilters = ( { limit, moreButton, showFilter, showProjectsLink, init
 							>
 								{loading ? 'Loading...' : 'show more projects'}
 							</button>
-							<p>Showing {projects.length} out of {totalProjects} projects</p>
+							<p>Showing {posts.length} out of {totalProjects} projects</p>
 						</div>
 					)}
 				</>
@@ -259,11 +249,13 @@ const ProjectFilters = ( { limit, moreButton, showFilter, showProjectsLink, init
 
 // Render the app
 domReady( () => {
-	const container = document.querySelector( '.wp-block-creative-spaces-filter-projects' );
+	const container = document.querySelector( '.wp-block-six-character-media-everything-filter' );
 	const root = createRoot(
 		container
 	);
 
+	const postType = container.attributes.posttype.value;
+	const restEndpoint = container.attributes.restendpoint.value;
 	const limit = parseInt( container.attributes.limit.value );
 	const morebutton = container.attributes.morebutton.value === "1" ? true : false;
 	const showFilter = container.attributes.showfilters.value === "1" ? true : false;
@@ -273,7 +265,9 @@ domReady( () => {
 	const initService = args.service ? args.service : '';
 	const initIndustry = args.industry ? args.industry : '';
 
-	root.render( <ProjectFilters 
+	root.render( <EverythingFilter 
+		postType={ postType }
+		restEndpoint={ restEndpoint }
 		limit={ limit }
 		moreButton={ morebutton }
 		showFilter={ showFilter }

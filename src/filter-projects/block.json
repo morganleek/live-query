@@ -1,17 +1,25 @@
 {
   "$schema": "https://schemas.wp.org/trunk/block.json",
   "apiVersion": 3,
-  "name": "creative-spaces/filter-projects",
+  "name": "six-character-media/everything-filter",
   "version": "1.0.0",
-  "title": "Filter Projects",
+  "title": "Everything Filter",
   "category": "widgets",
-  "icon": "clipboard",
-  "description": "Custom block for Creative Spaces",
+  "icon": "grid-view",
+  "description": "",
   "example": {},
   "supports": {
     "html": false
   },
   "attributes": {
+    "postType": {
+      "type": "string",
+      "default": ""
+    },
+    "restEndpoint": {
+      "type": "string",
+      "default": ""
+    },
     "limit": {
 			"type": "integer",
 			"default": 6
@@ -24,12 +32,16 @@
       "type": "integer",
       "default": 1
     },
+    "filters": {
+      "type": "array",
+      "default": []
+    },
     "showProjectsLink": {
       "type": "integer",
       "default": 1
     }
   },
-  "textdomain": "filter-projects",
+  "textdomain": "everything-filter",
   "editorScript": "file:./index.js",
   "editorStyle": "file:./index.css",
   "style": "file:./style-index.css",
