@@ -5,10 +5,12 @@ import apiFetch from '@wordpress/api-fetch';
 import { addQueryArgs, getQueryArgs, removeQueryArgs } from '@wordpress/url';
 import Select from 'react-select';
 
-const EverythingFilter = ( { postType, restEndpoint, limit, moreButton, showFilter, showProjectsLink, initService, initIndustry } ) => {
+const EverythingFilter = ( { postType, filters, restEndpoint, limit, moreButton, showFilter, showProjectsLink, initService, initIndustry } ) => {
 	const [posts, setPosts] = useState([]);
-	const [services, setServices] = useState([]);
-	const [industries, setIndustries] = useState([]);
+	const [filtersLoaded, setFiltersLoaded] = useState( false );
+	// const [services, setServices] = useState([]);
+	// const [industries, setIndustries] = useState([]);
+	const [filtersWithTerms, setFiltersWithTerms] = useState( null );
 	const [selectedService, setSelectedService] = useState( initService );
 	const [selectedIndustry, setSelectedIndustry] = useState( initIndustry );
 	const [currentPage, setCurrentPage] = useState(1);
@@ -26,32 +28,33 @@ const EverythingFilter = ( { postType, restEndpoint, limit, moreButton, showFilt
 
 
 	// Fetch taxonomies on mount
-	// useEffect(() => {
-	// 	fetchTaxonomies();
-	// }, []);
+	useEffect(() => {
+		fetchTaxonomies();
+		setFiltersLoaded( true );
+	}, []);
 
 	// Fetch projects when filters change
 	useEffect(() => {
-		if( postType && restEndpoint ) {
+		if( postType && filtersLoaded ) {
 			fetchPosts(1, false);
-			// setUpdatedURL();
 		}
-	}, [selectedService, selectedIndustry]);
+	}, [filtersWithTerms]);
 	
 
-	// const fetchTaxonomies = async () => {
-	// 	apiFetch( { 
-	// 		path: '/project-filters/v1/services' // addQueryArgs( '/services', queryParams )
-	// 	} ).then( ( data ) => {
-	// 		setServices( data.services || [] );
-	// 	} );
+	const fetchTaxonomies = async () => {
+		let queryParams = {};
 
-	// 	apiFetch( { 
-	// 		path: '/project-filters/v1/industries' // addQueryArgs( '/industries', queryParams )
-	// 	} ).then( ( data ) => {
-	// 		setIndustries( data.industries || [] );
-	// 	} );
-	// };
+		if( filters ) {
+			queryParams.taxonomies = filters.split( "," );
+		}
+
+		apiFetch( { 
+			path: addQueryArgs( '/everything-filter/v1/terms', queryParams )
+		} ).then( ( data ) => {
+			setFiltersWithTerms( data.taxonomyTerms );
+		} );
+
+	};
 
 	const fetchPosts = async (page = 1, append = false) => {
 		setLoading(true);
@@ -60,20 +63,24 @@ const EverythingFilter = ( { postType, restEndpoint, limit, moreButton, showFilt
 		const postId = document.body.attributes.class.value.match( /postid-(\d+)/ );
 
 		try {
+			// add taxonomies
+			const taxQuery = {};
+			Object.keys( filtersWithTerms ).map( key => {
+				taxQuery[key] = [];
+				filtersWithTerms[key].forEach( t => {
+					if( t.selected === 1 ) {
+						taxQuery[key].push( t.slug );
+					}
+				} )
+			} );
+
 			const params = {
 				page: page,
 				per_page: perPage,
 				post_type: postType,
-				...( exclude && postId && { exclude: postId[1] } )
+				...( exclude && postId && { exclude: postId[1] } ),
+				tax_query: taxQuery
 			};
-
-			// add taxonomies
-			// if (selectedService) {
-			// 	params.service = selectedService;
-			// }
-			// if (selectedIndustry) {
-			// 	params.industry = selectedIndustry;
-			// }
 
 			apiFetch( { 
 				path: addQueryArgs( "everything-filter/v1/posts", params )
@@ -86,7 +93,7 @@ const EverythingFilter = ( { postType, restEndpoint, limit, moreButton, showFilt
 				// return res.json();
 			} );
 		} catch (error) {
-			console.error('Error fetching projects:', error);
+			console.error('Error fetching posts:', error);
 		} finally {
 			setLoading(false);
 		}
@@ -108,25 +115,43 @@ const EverythingFilter = ( { postType, restEndpoint, limit, moreButton, showFilt
 		window.history.pushState( {}, "Page", url );
 	}
 
-	const handleServiceChange = ( { value } ) => {
-		setSelectedService( value );
-		setCurrentPage( 1 );
-		// update URL
-		// setUpdatedURL();
-	};
+	// const handleServiceChange = ( { value } ) => {
+	// 	setSelectedService( value );
+	// 	setCurrentPage( 1 );
+	// 	// update URL
+	// 	// setUpdatedURL();
+	// };
 
-	const handleIndustryChange = ( { value } ) => {
-		setSelectedIndustry( value );
-		setCurrentPage( 1 );
-		// update URL
-		// setUpdatedURL();
-	};
+	// const handleIndustryChange = ( { value } ) => {
+	// 	setSelectedIndustry( value );
+	// 	setCurrentPage( 1 );
+	// 	// update URL
+	// 	// setUpdatedURL();
+	// };
 
 	const handleReset = () => {
 		setSelectedService( '' );
 		setSelectedIndustry( '' );
 		setCurrentPage( 1 );
 	};
+
+	const updateSearchTerm = ( tax, slug, state ) => {
+		setCurrentPage( 1 );
+
+		const newTaxTerms = {}
+		newTaxTerms[tax] = filtersWithTerms[tax].map( insideTerm => {
+			if( insideTerm.slug === slug ) {
+				return { ...insideTerm, selected: state ? 1 : 0 }
+			}
+			return insideTerm;
+		} );
+
+		setFiltersWithTerms(
+			{ ...filtersWithTerms, 
+				...newTaxTerms
+			}
+		);	
+	}
 
 	const hasActiveFilters = selectedService || selectedIndustry;
 	const hasMoreProjects = currentPage < totalPages;
@@ -135,48 +160,27 @@ const EverythingFilter = ( { postType, restEndpoint, limit, moreButton, showFilt
 		<div className={ `posts-filters-container posts-limit-${perPage}` }>
 			{ ( showFilter || showProjectsLink ) && (
 				<div className="posts-header">
-					{/* { showFilter && industries.length > 0 && services.length > 0 && (
+					{ showFilter && filtersWithTerms && (
 						<div className="posts-filters-controls">
 							<div className="filter-group">
 								{!initialLoad && (
 									<span className="posts-results">Showing {posts.length} posts in</span>
 								)}
-								<Select
-									className="service-filter"
-									classNamePrefix="select"
-									defaultValue={ selectedService === '' ? { value: '', label: 'service' } : services.filter( s => s.slug === selectedService ).map(item => ( { value: item.slug, label: item.name.toLowerCase() } ) )[0] }
-									isLoading={ loading }
-									isClearable={ false }
-									isSearchable={ false }
-									onChange={ handleServiceChange }
-									name="service-filter"
-									options={ [
-										{ value: '', label: 'all services' },
-										...services.map(item => ( { value: item.slug, label: item.name.toLowerCase() } ) )
-									] }
-								/>
-								<Select
-									className="industry-filter"
-									classNamePrefix="select"
-									defaultValue={ initIndustry === '' ? { value: '', label: 'industry' } : industries.filter( i => i.slug === initIndustry ).map(item => ( { value: item.slug, label: item.name.toLowerCase() } ) )[0] }
-									isLoading={ loading }
-									isClearable={ false }
-									isSearchable={ false }
-									onChange={ handleIndustryChange }
-									name="industry-filter"
-									options={ [
-										{ value: '', label: 'all industries' },
-										...industries.map(item => ( { value: item.slug, label: item.name.toLowerCase() } ) )
-									] }
-								/>
-								
-							</div>
-						</div>
-					) } */}
-					{ showProjectsLink && (
-						<div class="wp-block-buttons is-content-justification-center is-layout-flex wp-block-buttons-is-layout-flex">
-							<div class="wp-block-button is-style-minimal">
-								<a class="wp-block-button__link wp-element-button" href="/projects">projects overview</a>
+								{ Object.keys( filtersWithTerms ).map( tax => (
+									<div className={ "filter-dropdown filter-dropdown-" + tax }>
+										<span className="filter-label">Select an option</span>
+										{ filtersWithTerms[tax].map( term => (
+											<label>
+												<input 
+													type="checkbox"
+													onChange={ () => updateSearchTerm( tax, term.slug, !term.selected ) }
+													checked={ term.selected === 1 }
+													value="1"
+												/>
+												{term.name}</label>
+										) ) }
+									</div>
+								) ) }
 							</div>
 						</div>
 					) }
@@ -184,16 +188,16 @@ const EverythingFilter = ( { postType, restEndpoint, limit, moreButton, showFilt
 			) }
 
 			{ loading && posts.length === 0 ? (
-				<div className="project-loading">
+				<div className="post-loading">
 					<p>Loading posts...</p>
 				</div>
 			) : posts.length === 0 ? (
-				<div className="project-no-results">
+				<div className="post-no-results">
 					<p>No posts found matching your criteria.</p>
 				</div>
 			) : (
 				<>
-					<div className="project-grid">
+					<div className="post-grid">
 						{posts.map(post => (
 							<div key={post.id} className="post-card">
 								{post.featured_image && (
@@ -230,15 +234,15 @@ const EverythingFilter = ( { postType, restEndpoint, limit, moreButton, showFilt
 					</div>
 
 					{ moreButton && hasMoreProjects && (
-						<div className="project-load-more">
+						<div className="post-load-more">
 							<button
 								onClick={handleLoadMore}
 								disabled={loading}
 								className="load-more-btn"
 							>
-								{loading ? 'Loading...' : 'show more projects'}
+								{loading ? 'Loading...' : 'show more posts'}
 							</button>
-							<p>Showing {posts.length} out of {totalProjects} projects</p>
+							<p>Showing {posts.length} out of {totalProjects} posts</p>
 						</div>
 					)}
 				</>
@@ -255,6 +259,7 @@ domReady( () => {
 	);
 
 	const postType = container.attributes.posttype.value;
+	const filters = container.attributes.filters.value;
 	const restEndpoint = container.attributes.restendpoint.value;
 	const limit = parseInt( container.attributes.limit.value );
 	const morebutton = container.attributes.morebutton.value === "1" ? true : false;
@@ -267,6 +272,7 @@ domReady( () => {
 
 	root.render( <EverythingFilter 
 		postType={ postType }
+		filters={ filters }
 		restEndpoint={ restEndpoint }
 		limit={ limit }
 		moreButton={ morebutton }

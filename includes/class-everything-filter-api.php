@@ -28,14 +28,15 @@ class Project_Filters_API {
                     'default' => 6,
                     'sanitize_callback' => 'absint',
                 ),
-                'terms' => array(
+                'tax_query' => array(
                     'default' => '',
-                    'sanitize_callback' => 'sanitize_text_field'
+                    // 'sanitize_callback' => 'rest_sanitize_array'
                 ),
                 'post_type' => array(
                     'default' => '',
                     'sanitize_callback' => 'sanitize_text_field',
                 ),
+
                 // 'industry' => array(
                 //     'default' => '',
                 //     'sanitize_callback' => 'sanitize_text_field',
@@ -79,10 +80,10 @@ class Project_Filters_API {
         $industry = $request->get_param('industry');
         $exclude = $request->get_param('exclude');
         $post_type = $request->get_param('post_type');
+        $tax_query = $request->get_param('tax_query');
 
         if( empty( $post_type ) ) {
             return new WP_REST_Response(array(
-                // 'message' => 'No `post_type` set'
                 'posts' => [],
                 'total' => 0,
                 'total_pages' => 1,
@@ -111,15 +112,17 @@ class Project_Filters_API {
         }
 
         // Add tax query if filters are set
-        $tax_query = array();
+        $tax_query_params = array();
 
-        // if (!empty($service)) {
-        //     $tax_query[] = array(
-        //         'taxonomy' => 'service',
-        //         'field' => 'slug',
-        //         'terms' => $service,
-        //     );
-        // }
+        if (!empty($tax_query)) {
+            foreach( $tax_query as $k => $v ) {
+                $tax_query_params[] = array(
+                    'taxonomy' => $k,
+                    'field' => 'slug',
+                    'terms' => $v,
+                );
+            }
+        }
 
         if (!empty($terms)) {
             // $tax_query[] = array(
@@ -129,9 +132,9 @@ class Project_Filters_API {
             // );
         }
 
-        if (!empty($tax_query)) {
-            $args['tax_query'] = $tax_query;
-            if (count($tax_query) > 1) {
+        if (!empty($tax_query_params)) {
+            $args['tax_query'] = $tax_query_params;
+            if (count($tax_query_params) > 1) {
                 $args['tax_query']['relation'] = 'AND';
             }
         }
@@ -182,32 +185,35 @@ class Project_Filters_API {
      * Get all service terms
      */
     public function get_terms($request) {
-        $taxonomy = $request->get_param('taxonomy');
+        $taxonomies = $request->get_param('taxonomies');
+        $taxonomyTerms = array();
 
-        if( empty( $taxonomy ) ) {
+        if( empty( $taxonomies ) ) {
             return new WP_REST_Response(array('terms' => array()), 200);
         }
 
-        $terms = get_terms(array(
-            'taxonomy' => $taxonomy,
-            'hide_empty' => false,
-        ));
-
-        if ( is_wp_error( $terms ) ) {
-            return new WP_REST_Response(array('terms' => array()), 200);
+        foreach( $taxonomies as $t ) {
+            $terms = get_terms(array(
+                'taxonomy' => $t,
+                'hide_empty' => false,
+            ));
+    
+            if ( is_wp_error( $terms ) ) {
+                return new WP_REST_Response(array('terms' => array()), 200);
+            }
+            
+            foreach ( $terms as $term ) {
+                $taxonomyTerms[$t][] = array(
+                    'id' => $term->term_id,
+                    'name' => $term->name,
+                    'slug' => $term->slug,
+                    'count' => $term->count,
+                    'selected' => 0
+                );
+            }
         }
 
-        $services = array();
-        foreach ( $terms as $term ) {
-            $services[] = array(
-                'id' => $term->term_id,
-                'name' => $term->name,
-                'slug' => $term->slug,
-                'count' => $term->count,
-            );
-        }
-
-        return new WP_REST_Response( array( 'services' => $services ), 200 );
+        return new WP_REST_Response( array( 'taxonomyTerms' => $taxonomyTerms ), 200 );
     }
 
     /**

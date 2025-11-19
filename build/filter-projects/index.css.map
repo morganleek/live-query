@@ -1,1 +1,0 @@
-{"version":3,"file":"filter-projects/index.css","mappings":";;;AACC;EACC;EACA;EACA;AAAF,C","sources":["webpack://everything-filter/./src/filter-projects/editor.scss"],"sourcesContent":[".wp-block-six-character-media-everything-filter {\n\t&.block-editor-block-list__block {\n\t\tpadding: 20px;\n\t\tborder: 1px dashed;\n\t\ttext-align: center;\n\t}\n}"],"names":[],"sourceRoot":""}
