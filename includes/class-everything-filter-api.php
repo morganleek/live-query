@@ -168,6 +168,7 @@ class Project_Filters_API {
                     'services' => $services,
                     'industries' => $industries,
                     'date' => get_the_date('c'),
+                    'formatted' => apply_filters( "everything_filter_formatted" , $post_id )
                 );
             }
             wp_reset_postdata();
@@ -242,3 +243,27 @@ class Project_Filters_API {
     //     return new WP_REST_Response(array('industries' => $industries), 200);
     // }
 }
+
+// Default format filter
+function everything_filter_formatted_default( $post_id ) {
+    $type = get_post_type( $post_id );
+
+    // featured image 
+    $post_thumbnail = ( has_post_thumbnail( $post_id ) ) ? "<div class=\"post-image\">" . 
+        "<a href=\"" . get_permalink( $post_id ) . "\">" . 
+            get_the_post_thumbnail( $post_id, 'full' ) . 
+        "</a>" . 
+    "</div>" : "";
+
+    return $post_thumbnail . "<div class=\"post-content\">" . 
+        "<h6 class=\"post-title\">" . 
+            "<a href=\"" . get_permalink( $post_id ) . "\">" . get_the_title($post_id) . "</a>" . 
+        "</h6>" . 
+        "<div class=\"post-excerpt\">" . get_the_excerpt( $post_id ) . "</div>" . 
+        "<a href=\"" . get_permalink( $post_id ) . "\" class=\"post-link\">" . 
+            "<span class=\"label\">explore the post</span>" . 
+        "</a>" . 
+    "</div>";
+}
+
+add_filter( "everything_filter_formatted", "everything_filter_formatted_default", 0, 1 );

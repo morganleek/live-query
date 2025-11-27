@@ -7,3 +7,27 @@ License:           GPL-2.0-or-later
 License URI:       https://www.gnu.org/licenses/gpl-2.0.html
 
 Gutenberg Query Block loaded via AJAX with dynamic taxonomy filters
+
+Use the filter `everything_filter_formatted` to change the appearance of your content.
+```php
+function everything_filter_formatted_default( $post_id ) {
+    // featured image 
+    $post_thumbnail = ( has_post_thumbnail( $post_id ) ) ? "<div class=\"post-image\">" . 
+        "<a href=\"" . get_permalink( $post_id ) . "\">" . 
+            get_the_post_thumbnail( $post_id, 'full' ) . 
+        "</a>" . 
+    "</div>" : "";
+
+    return $post_thumbnail . "<div class=\"post-content\">" . 
+        "<h6 class=\"post-title\">" . 
+            "<a href=\"" . get_permalink( $post_id ) . "\">" . get_the_title($post_id) . "</a>" . 
+        "</h6>" . 
+        "<div class=\"post-excerpt\">" . get_the_excerpt( $post_id ) . "</div>" . 
+        "<a href=\"" . get_permalink( $post_id ) . "\" class=\"post-link\">" . 
+            "<span class=\"label\">explore the post</span>" . 
+        "</a>" . 
+    "</div>";
+}
+
+add_filter( "everything_filter_formatted", "my_everything_filter_formatted", 20, 1 );
+```

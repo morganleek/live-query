@@ -36,6 +36,10 @@
       "type": "array",
       "default": []
     },
+    "filterLabels": {
+      "type": "object",
+      "default": {}
+    },
     "showProjectsLink": {
       "type": "integer",
       "default": 1
@@ -45,5 +49,6 @@
   "editorScript": "file:./index.js",
   "editorStyle": "file:./index.css",
   "style": "file:./style-index.css",
-  "viewScript": "file:./view.js"
+  "viewScript": "file:./view.js",
+  "render": "file:./index.php"
 }

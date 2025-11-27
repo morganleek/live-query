@@ -1,27 +1,27 @@
 import domReady from '@wordpress/dom-ready';
-import { createRoot } from '@wordpress/element';
+import { createRoot, hydrateRoot } from '@wordpress/element';
 import { useState, useEffect } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
 import { addQueryArgs, getQueryArgs, removeQueryArgs } from '@wordpress/url';
-import Select from 'react-select';
+// import Select from 'react-select';
+import classNames from 'classnames'
 
-const EverythingFilter = ( { postType, filters, restEndpoint, limit, moreButton, showFilter, showProjectsLink, initService, initIndustry } ) => {
+const EverythingFilter = ( { postType, filters, filterlabels, limit, moreButton, showFilter, showProjectsLink } ) => {
 	const [posts, setPosts] = useState([]);
 	const [filtersLoaded, setFiltersLoaded] = useState( false );
-	// const [services, setServices] = useState([]);
-	// const [industries, setIndustries] = useState([]);
 	const [filtersWithTerms, setFiltersWithTerms] = useState( null );
-	const [selectedService, setSelectedService] = useState( initService );
-	const [selectedIndustry, setSelectedIndustry] = useState( initIndustry );
+	const [expandedFilters, setExpandedFilters] = useState({});
+	// const [selectedService, setSelectedService] = useState( initService );
+	// const [selectedIndustry, setSelectedIndustry] = useState( initIndustry );
 	const [currentPage, setCurrentPage] = useState(1);
 	const [totalPages, setTotalPages] = useState(1);
 	const [totalProjects, setTotalProjects] = useState(0);
 	const [loading, setLoading] = useState(false);
 	const [initialLoad, setInitialLoad] = useState(true);
-	const [loadedImages, setLoadedImages] = useState({});
-  const handleImageLoad = (id) => {
-    setLoadedImages(prev => ({ ...prev, [id]: true }));
-  };
+	// const [loadedImages, setLoadedImages] = useState({});
+  // const handleImageLoad = (id) => {
+  //   setLoadedImages(prev => ({ ...prev, [id]: true }));
+  // };
 
 	// const apiUrl = window.projectFiltersData.apiUrl;
 	const perPage = limit ? limit : 6;
@@ -52,11 +52,13 @@ const EverythingFilter = ( { postType, filters, restEndpoint, limit, moreButton,
 			path: addQueryArgs( '/everything-filter/v1/terms', queryParams )
 		} ).then( ( data ) => {
 			setFiltersWithTerms( data.taxonomyTerms );
+			setExpandedFilters( Object.fromEntries( Object.keys( data.taxonomyTerms ).map( key => [key, false] ) ) );
 		} );
 
 	};
 
 	const fetchPosts = async (page = 1, append = false) => {
+		console.log( 'fetchPosts' );
 		setLoading(true);
 
 		const exclude = document.body.classList.contains( 'single' )
@@ -89,7 +91,7 @@ const EverythingFilter = ( { postType, filters, restEndpoint, limit, moreButton,
 				setTotalProjects( parseInt( res.total ) );
 				setCurrentPage( page );
 				setInitialLoad( false );
-				setPosts( res.posts );
+				setPosts( page === 1 ? res.posts : [...posts, ...res.posts] );
 				// return res.json();
 			} );
 		} catch (error) {
@@ -107,27 +109,20 @@ const EverythingFilter = ( { postType, filters, restEndpoint, limit, moreButton,
 
 	const baseURL = () => removeQueryArgs( window.location.href, 'service', 'industry' );
 
-	const setUpdatedURL = () => {
-		const url = addQueryArgs( baseURL(), {
-			...( selectedService.length > 0 && { service: selectedService } ),
-			...( selectedIndustry.length > 0 && { industry: selectedIndustry } ),
+	const setUpdatedURL = ( newTerms ) => {
+		const taxQuery = {};
+		const allTerms = { ...filtersWithTerms, ...newTerms };
+		Object.keys( allTerms ).map( key => {
+			taxQuery[key] = [];
+			allTerms[key].forEach( t => {
+				if( t.selected === 1 ) {
+					taxQuery[key] = taxQuery[key].length === 0 ? t.slug : taxQuery[key] + "," + t.slug;
+				}
+			} )
 		} );
+		const url = addQueryArgs( baseURL(), taxQuery );
 		window.history.pushState( {}, "Page", url );
 	}
-
-	// const handleServiceChange = ( { value } ) => {
-	// 	setSelectedService( value );
-	// 	setCurrentPage( 1 );
-	// 	// update URL
-	// 	// setUpdatedURL();
-	// };
-
-	// const handleIndustryChange = ( { value } ) => {
-	// 	setSelectedIndustry( value );
-	// 	setCurrentPage( 1 );
-	// 	// update URL
-	// 	// setUpdatedURL();
-	// };
 
 	const handleReset = () => {
 		setSelectedService( '' );
@@ -150,14 +145,18 @@ const EverythingFilter = ( { postType, filters, restEndpoint, limit, moreButton,
 			{ ...filtersWithTerms, 
 				...newTaxTerms
 			}
-		);	
+		);
+		
+		setUpdatedURL( { 
+			...newTaxTerms
+		} );
 	}
 
-	const hasActiveFilters = selectedService || selectedIndustry;
+	// const hasActiveFilters = selectedService || selectedIndustry;
 	const hasMoreProjects = currentPage < totalPages;
 
 	return (
-		<div className={ `posts-filters-container posts-limit-${perPage}` }>
+		<div className={ classNames( `posts-filters-container posts-limit-${perPage}`, { 'is-loaded': !initialLoad  } ) }>
 			{ ( showFilter || showProjectsLink ) && (
 				<div className="posts-header">
 					{ showFilter && filtersWithTerms && (
@@ -167,18 +166,33 @@ const EverythingFilter = ( { postType, filters, restEndpoint, limit, moreButton,
 									<span className="posts-results">Showing {posts.length} posts in</span>
 								)}
 								{ Object.keys( filtersWithTerms ).map( tax => (
-									<div className={ "filter-dropdown filter-dropdown-" + tax }>
-										<span className="filter-label">Select an option</span>
-										{ filtersWithTerms[tax].map( term => (
-											<label>
-												<input 
-													type="checkbox"
-													onChange={ () => updateSearchTerm( tax, term.slug, !term.selected ) }
-													checked={ term.selected === 1 }
-													value="1"
-												/>
-												{term.name}</label>
-										) ) }
+									
+									<div 
+										className={ classNames( "filter-dropdown", [`filter-dropdown-${tax}`], { "filter-expanded": expandedFilters[tax] } ) }
+									>
+										<button 
+											className="filter-label"
+											onClick={ () => setExpandedFilters( { ...expandedFilters, ...{ [tax]: !expandedFilters[tax] } } ) }
+										>
+											{ filterlabels[tax] ? filterlabels[tax] : "Select an option" }
+										</button>
+										{ expandedFilters[tax] === true && (
+											<div className="dropdown">
+												{ filtersWithTerms[tax].map( term => (
+													<label>
+														<span className="checkbox-wrapper">
+
+															<input 
+																type="checkbox"
+																onChange={ () => updateSearchTerm( tax, term.slug, !term.selected ) }
+																checked={ term.selected === 1 }
+																value="1"
+															/>
+														</span>
+														{term.name}</label>
+												) ) }
+											</div>
+										) }
 									</div>
 								) ) }
 							</div>
@@ -199,37 +213,7 @@ const EverythingFilter = ( { postType, filters, restEndpoint, limit, moreButton,
 				<>
 					<div className="post-grid">
 						{posts.map(post => (
-							<div key={post.id} className="post-card">
-								{post.featured_image && (
-									<div className="post-image">
-										<a href={post.link}>
-											<img 
-												src={post.featured_image} 
-												alt={post.title} 
-												className={ loadedImages[post.id] ? 'has-loaded' : '' }
-												loading="lazy"
-												onLoad={ () => handleImageLoad( post.id ) }
-											/>
-											{ post.featured_media }
-										</a>
-									</div>
-								)}
-								<div className="post-content">
-									<h6 className="post-title">
-										<a href={post.link}>{post.title}</a>
-									</h6>
-
-									{post.excerpt && (
-										<div
-											className="post-excerpt"
-											dangerouslySetInnerHTML={{ __html: post.excerpt }}
-										/>
-									)}
-									<a href={post.link} className="post-link">
-										<span className="label">explore the post</span>
-									</a>
-								</div>
-							</div>
+							<div className={ "post-card type-" + postType } dangerouslySetInnerHTML={{ __html: post.formatted }} />
 						))}
 					</div>
 
@@ -254,31 +238,79 @@ const EverythingFilter = ( { postType, filters, restEndpoint, limit, moreButton,
 // Render the app
 domReady( () => {
 	const container = document.querySelector( '.wp-block-six-character-media-everything-filter' );
-	const root = createRoot(
-		container
-	);
-
 	const postType = container.attributes.posttype.value;
 	const filters = container.attributes.filters.value;
-	const restEndpoint = container.attributes.restendpoint.value;
 	const limit = parseInt( container.attributes.limit.value );
 	const morebutton = container.attributes.morebutton.value === "1" ? true : false;
 	const showFilter = container.attributes.showfilters.value === "1" ? true : false;
 	const showProjectsLink = container.attributes.showprojectslink.value === "1" ? true : false;
+	const filterlabels = JSON.parse( container.attributes.filterlabels.value );
+		
+	// hydrateRoot(
+	// 	container,
+	// 	<EverythingFilter 
+	// 		postType={ postType }
+	// 		filters={ filters }
+	// 		limit={ limit }
+	// 		moreButton={ morebutton }
+	// 		showFilter={ showFilter }
+	// 		showProjectsLink={ showProjectsLink }
+	// 		filterlabels={ filterlabels }
+	// 	/>
+	// );
+	
+	const root = createRoot(
+		container
+	);
 
-	const args = getQueryArgs( window.location.href );
-	const initService = args.service ? args.service : '';
-	const initIndustry = args.industry ? args.industry : '';
+	// const args = getQueryArgs( window.location.href );
+	// const initService = args.service ? args.service : '';
+	// const initIndustry = args.industry ? args.industry : '';
 
 	root.render( <EverythingFilter 
 		postType={ postType }
 		filters={ filters }
-		restEndpoint={ restEndpoint }
 		limit={ limit }
 		moreButton={ morebutton }
 		showFilter={ showFilter }
 		showProjectsLink={ showProjectsLink }
-		initService={ initService }
-		initIndustry={ initIndustry }
+		filterlabels={ filterlabels }
+		// initService={ initService }
+		// initIndustry={ initIndustry }
 	/> );
 } );
+
+// Watch for new images added to the DOM
+const observer = new MutationObserver(mutations => {
+  mutations.forEach(mutation => {
+    mutation.addedNodes.forEach(node => {
+      if (node.tagName === 'IMG') {
+        if (node.complete) {
+          handleImageLoad(node);
+        } else {
+          node.addEventListener('load', () => handleImageLoad(node));
+        }
+      }
+      // Check for images within added elements
+      if (node.querySelectorAll) {
+        node.querySelectorAll('img').forEach(img => {
+          if (img.complete) {
+            handleImageLoad(img);
+          } else {
+            img.addEventListener('load', () => handleImageLoad(img));
+          }
+        });
+      }
+    });
+  });
+});
+
+// Start observing
+observer.observe( document.body, {
+  childList: true,
+  subtree: true
+} );
+
+function handleImageLoad( img ) {
+  img.classList.add( "has-loaded" );
+}
