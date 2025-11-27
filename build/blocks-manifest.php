@@ -74,7 +74,13 @@ return array(
 			
 		),
 		'supports' => array(
-			'html' => false
+			'html' => false,
+			'spacing' => array(
+				'blockGap' => array(
+					'horizontal',
+					'vertical'
+				)
+			)
 		),
 		'ancestor' => array(
 			'scm/live-query'
@@ -91,6 +97,10 @@ return array(
 				'default' => array(
 					
 				)
+			),
+			'multiSelect' => array(
+				'type' => 'boolean',
+				'default' => true
 			)
 		),
 		'textdomain' => 'live-filters',

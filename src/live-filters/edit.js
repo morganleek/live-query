@@ -1,36 +1,15 @@
 import { __ } from '@wordpress/i18n';
 import { InspectorControls, useBlockProps } from '@wordpress/block-editor';
-import { PanelBody, RadioControl, TextControl, SelectControl, CheckboxControl } from '@wordpress/components';
+import { PanelBody, ToggleControl, TextControl, CheckboxControl } from '@wordpress/components';
 import apiFetch from '@wordpress/api-fetch';
 import './editor.scss';
 import { useEffect, useState } from '@wordpress/element';
-import { InnerBlocks } from '@wordpress/block-editor';
 
 export default function Edit( { attributes, setAttributes } ) {
-	const { filters, filterLabels } = attributes;
+	const { filters, filterLabels, multiSelect } = attributes;
 	const [ taxonomies, setTaxonomies ] = useState( null );
-	// const [ taxonomyOptions, setTaxonomyOptions ] = useState( null );
 
 	useEffect( () => {
-		// apiFetch( { path: '/wp/v2/types' } ).then( ( types ) => {
-		// 	setPostTypes( types );
-		// 	// if value is already set load taxonomies also
-		// 	if( postType && types.hasOwnProperty( postType) && types[postType].hasOwnProperty( "taxonomies" ) ) {
-		// 		setTaxonomyOptions( types[postType].taxonomies );
-		// 	}
-		// 	if( types ) {
-		// 		let typesSelect = [
-		// 			{ value: '', label: 'Select a Post Type', disabled: true }
-		// 		];
-		// 		for( const key in types ) {
-		// 			if( types.hasOwnProperty( key ) ) {
-		// 				typesSelect.push( { label: types[key].name, value: types[key].slug } );
-		// 			}
-		// 		}
-		// 		setPostTypeOptions( typesSelect );
-		// 	}
-		// } );
-
 		apiFetch( { path: '/wp/v2/taxonomies' } ).then( ( data ) => {
 			setTaxonomies( data );
 		} );
@@ -41,13 +20,21 @@ export default function Edit( { attributes, setAttributes } ) {
 			if( filters.includes( taxonomySlug ) ) { // not if it already exists
 				return;
 			}
-			setAttributes( { filters: [...filters, taxonomySlug] } );
+
+			setAttributes( { 
+				filters: [...filters, taxonomySlug],
+				filterLabels: { ...{ [`${taxonomySlug}`]: `Select a ${taxonomySlug}` }, ...filterLabels }
+			} );
 		}
 		else { // remove
 			if( !filters.includes( taxonomySlug ) ) { // not if it doesn't exist
 				return;
 			}
-			setAttributes( { filters: filters.filter( filterSlug => filterSlug !== taxonomySlug ) } );
+			// const newFilterLabels = 
+			setAttributes( { 
+				filters: filters.filter( filterSlug => filterSlug !== taxonomySlug ),
+				filterLabels: Object.keys( filterLabels ).filter( key => key !== taxonomySlug ).map( key => filterLabels[key] )
+			} );
 		}
 	}
 
@@ -63,6 +50,17 @@ export default function Edit( { attributes, setAttributes } ) {
 	return (
 		<div { ...useBlockProps() }>
 			<InspectorControls>
+				<PanelBody title={ __( 'Settings' ) }>
+					<ToggleControl
+            checked={ multiSelect }
+            label="Allow multiple filter selection"
+						value={ multiSelect }
+						onChange={ ( newValue ) => { setAttributes( { multiSelect: newValue } ) } }
+						disabled
+						__nextHasNoMarginBottom
+						__next40pxDefaultSize
+					/>
+				</PanelBody>
 				{ taxonomies && (
 					<PanelBody title={ __( 'Filters' ) }>
 						{ Object.keys( taxonomies ).map( slug => (
@@ -86,12 +84,17 @@ export default function Edit( { attributes, setAttributes } ) {
 					</PanelBody>
 				) }
 			</InspectorControls>
-			<ul>
+			<div className="filter-group">
+				<span className="posts-results">Showing X posts in</span>
 				{ taxonomies && filters && filterLabels && filters.map( filter => (
-					<li>{ filterLabels[filter] }</li>
+					<div className="filter-dropdown">
+						<button className="filter-label">
+							{ filterLabels[filter] ? filterLabels[filter] : "Select an option" }
+						</button>
+					</div>
 				) ) }
-				{ filters.length === 0 && ( <li>Select a filter</li> ) }
-			</ul>
+				{ filters.length === 0 && ( <p>Select at least one filter</p> ) }
+			</div>
 		</div>
 	);
 }

@@ -1,3 +1,45 @@
 .wp-block-scm-live-filters {
-	border: 1px dashed red;
+	.filter-group {
+		display: flex;
+		flex-direction: row;
+		gap: 1rem;
+		align-items: center;
+	}
+	.filter-dropdown {
+		position: relative;
+		border: 1px solid;
+		button {
+			width: 100%;
+			border: 0 none;
+			background: transparent;
+			text-align: left;
+			padding: 0.5rem 1rem;
+			display: flex;
+			gap: 0.5rem;
+			justify-content: space-between;
+			align-items: center;
+			&::after {
+				content: "";
+				width: 24px;
+				height: 12px;
+				background-color: #000;
+				clip-path: path("M11,11.58c-.1,0-.2-.04-.28-.11L.12,1.1c-.16-.15-.16-.4,0-.56.15-.16.4-.16.56,0l10.33,10.1L21.33.53c.16-.15.41-.15.56,0,.15.16.15.41,0,.56l-10.6,10.37c-.08.08-.18.11-.28.11Z");
+			}
+		}
+		.dropdown {
+			display: flex;
+			flex-direction: column;
+			position: absolute;
+			top: 100%;
+			left: 0;
+			right: 0;
+			z-index: 100;
+			background: #fff;
+			border-top: 1px solid;
+			padding: 0.5rem 1rem;
+			input {
+				margin: 0 0.5rem 0 0;
+			}
+		}
+	}
 }

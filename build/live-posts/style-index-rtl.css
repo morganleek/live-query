@@ -1,1 +1,1 @@
-.wp-block-scm-live-posts{border:1px dashed green;margin:5px}
+.wp-block-scm-live-posts .post-grid{display:grid;gap:2rem 1rem;grid-template-columns:repeat(auto-fill,minmax(min(12rem,100%),1fr))}.wp-block-scm-live-posts .post-grid img{height:auto;max-width:100%}

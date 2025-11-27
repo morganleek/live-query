@@ -6,8 +6,8 @@ import './editor.scss';
 export default function Edit( { attributes: { content }, setAttributes, insertBlocksAfter } ) {
 	return (
 		<>
-			<div className="wp-block-live-more">
-				<button className="load-more-button">
+			<div className="wp-block-scm-live-more">
+				<button className="more-button btn">
 					<RichText
 						identifier="content"
 						tagName="span"

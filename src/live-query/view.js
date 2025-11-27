@@ -152,23 +152,59 @@ const LivePosts = ( { liveMore, liveFilters, filters, postType, limit } ) => {
 		<div>
 			{ liveFilters && createPortal( (
 				<>
-					<select
-						onChange={ ( e ) => setLabel( e.target.value ) }
-					>
-						<option>One</option>
-						<option>Two</option>
-					</select>
+					<div className="posts-header">
+						{ filtersWithTerms && (
+							<div className="posts-filters-controls">
+								<div className="filter-group">
+									{!initialLoad && (
+										<span className="posts-results">Showing {posts.length} posts in</span>
+									)}
+									{ Object.keys( filtersWithTerms ).map( tax => (
+										
+										<div 
+											className={ classNames( "filter-dropdown", [`filter-dropdown-${tax}`], { "filter-expanded": expandedFilters[tax] } ) }
+										>
+											<button 
+												className="filter-label"
+												onClick={ () => setExpandedFilters( { ...expandedFilters, ...{ [tax]: !expandedFilters[tax] } } ) }
+											>
+												{ filters[tax] ? filters[tax] : "Select an option" }
+											</button>
+											{ expandedFilters[tax] === true && (
+												<div className="dropdown">
+													{ filtersWithTerms[tax].map( term => (
+														<label>
+															<span className="checkbox-wrapper">
+																<input 
+																	type="checkbox"
+																	onChange={ () => updateSearchTerm( tax, term.slug, !term.selected ) }
+																	checked={ term.selected === 1 }
+																	value="1"
+																/>
+															</span>
+															{term.name}</label>
+													) ) }
+												</div>
+											) }
+										</div>
+									) ) }
+								</div>
+							</div>
+						) }
+					</div>
 				</>
 			), liveFilters ) }
 			{ liveMore && createPortal( (
 				<div className="live-posts-more">
-					<button
-						onClick={ handleLoadMore }
-						disabled={loading}
-						className="load-more-btn"
-					>
-						{loading ? 'Loading...' : 'show more posts'}
-					</button>
+					{ hasMoreProjects && (
+						<button
+							onClick={ handleLoadMore }
+							disabled={loading}
+							className="load-more-btn"
+						>
+							{loading ? 'Loading...' : 'show more posts'}
+						</button>
+					) } 
 					<p>Showing {posts.length} out of {totalProjects} posts</p>
 				</div>
 			), liveMore ) }
@@ -188,19 +224,6 @@ const LivePosts = ( { liveMore, liveFilters, filters, postType, limit } ) => {
 								<div className={ "post-card type-" + postType } dangerouslySetInnerHTML={{ __html: post.formatted }} />
 							))}
 						</div>
-
-						{ /* moreButton && hasMoreProjects && (
-							<div className="post-load-more">
-								<button
-									onClick={handleLoadMore}
-									disabled={loading}
-									className="load-more-btn"
-								>
-									{loading ? 'Loading...' : 'show more posts'}
-								</button>
-								<p>Showing {posts.length} out of {totalProjects} posts</p>
-							</div>
-						) */ }
 					</>
 				) }
 			</>
@@ -220,6 +243,7 @@ domReady( () => {
 		const postType = container.attributes.posttype.value;
 		const limit = parseInt( container.attributes.limit.value );
 		const filterlabels = liveFilters ? JSON.parse( liveFilters.attributes.filters.value ) : undefined;
+		// const mutliSelect = liveFilters && liveFilters.attributes.multiselect.value !== "1" ? false : true;
 		const root = createRoot(
 			livePosts
 		);
@@ -229,6 +253,7 @@ domReady( () => {
 			filters={ filterlabels }
 			postType={ postType }
 			limit={ limit }
+			// mutliSelect={ mutliSelect }
 		/> );
 	}
 } );

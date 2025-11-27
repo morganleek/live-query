@@ -9,7 +9,13 @@
   "description": "",
   "example": {},
   "supports": {
-    "html": false
+    "html": false,
+    "spacing": {
+      "blockGap": [
+        "horizontal",
+        "vertical"
+      ]
+    }
   },
   "ancestor": [
     "scm/live-query"
@@ -22,6 +28,10 @@
     "filterLabels": {
       "type": "object",
       "default": {}
+    },
+    "multiSelect": {
+      "type": "boolean",
+      "default": true
     }
   },
   "textdomain": "live-filters",
