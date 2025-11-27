@@ -5,7 +5,7 @@
   "version": "1.0.0",
   "title": "Live More",
   "category": "widgets",
-  "icon": "grid-view",
+  "icon": "button",
   "description": "",
   "example": {},
   "supports": {

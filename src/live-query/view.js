@@ -1,6 +1,6 @@
 import domReady from '@wordpress/dom-ready';
 import { createRoot, createPortal } from '@wordpress/element';
-import { useState, useEffect } from '@wordpress/element';
+import { useState, useEffect, useRef } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
 import { addQueryArgs, getQueryArgs, removeQueryArgs } from '@wordpress/url';
 // import Select from 'react-select';
@@ -17,6 +17,9 @@ const LivePosts = ( { liveMore, liveFilters, filters, postType, limit } ) => {
 	const [loading, setLoading] = useState(false);
 	const [initialLoad, setInitialLoad] = useState(true);
 
+	// handle click off 
+	const clickDocument = useRef( null );
+
 	// const apiUrl = window.projectFiltersData.apiUrl;
 	const perPage = limit ? limit : 6;
 
@@ -26,6 +29,14 @@ const LivePosts = ( { liveMore, liveFilters, filters, postType, limit } ) => {
 			fetchTaxonomies();
 		}
 		setFiltersLoaded( true );
+
+		// mouse event handler
+		document.addEventListener( 'mousedown', handleClickOutside );
+
+		// Clean up event listener on unmount
+		return () => {
+			document.removeEventListener( 'mousedown', handleClickOutside );
+		};
 	}, []);
 
 	// Fetch projects when filters change
@@ -100,7 +111,7 @@ const LivePosts = ( { liveMore, liveFilters, filters, postType, limit } ) => {
 		}
 	};
 
-	// const baseURL = () => removeQueryArgs( window.location.href, 'service', 'industry' );
+	const baseURL = () => window.location.href.split( "?" )[0];
 
 	const setUpdatedURL = ( newTerms ) => {
 		const taxQuery = {};
@@ -145,6 +156,17 @@ const LivePosts = ( { liveMore, liveFilters, filters, postType, limit } ) => {
 		} );
 	}
 
+	const handleClickOutside = ( e ) => {
+		if( e.target.closest( ".filter-dropdown") === null ) {
+			setExpandedFilters( 
+				Object.fromEntries(
+					Object.keys( expandedFilters ).map( key => [key, false] )
+				)
+			)
+		}
+		// filter-dropdown
+	}
+
 	// const hasActiveFilters = selectedService || selectedIndustry;
 	const hasMoreProjects = currentPage < totalPages;
 
@@ -166,7 +188,7 @@ const LivePosts = ( { liveMore, liveFilters, filters, postType, limit } ) => {
 										>
 											<button 
 												className="filter-label"
-												onClick={ () => setExpandedFilters( { ...expandedFilters, ...{ [tax]: !expandedFilters[tax] } } ) }
+												onClick={ () => setExpandedFilters( { ...{ [tax]: !expandedFilters[tax] } } ) }
 											>
 												{ filters[tax] ? filters[tax] : "Select an option" }
 											</button>
