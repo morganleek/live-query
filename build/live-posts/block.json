@@ -11,6 +11,10 @@
   "supports": {
     "html": false
   },
+  "usesContext": [
+    "postType",
+    "limit"
+  ],
   "ancestor": [
     "scm/live-query"
   ],

@@ -21,6 +21,10 @@
 			"default": 6
 		}
   },
+  "providesContext": {
+    "postType": "postType",
+    "limit": "limit"
+  },
   "textdomain": "live-query",
   "editorScript": "file:./index.js",
   "editorStyle": "file:./index.css",

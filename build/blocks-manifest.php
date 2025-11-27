@@ -96,6 +96,10 @@ return array(
 		'supports' => array(
 			'html' => false
 		),
+		'usesContext' => array(
+			'postType',
+			'limit'
+		),
 		'ancestor' => array(
 			'scm/live-query'
 		),
@@ -133,6 +137,10 @@ return array(
 				'type' => 'integer',
 				'default' => 6
 			)
+		),
+		'providesContext' => array(
+			'postType' => 'postType',
+			'limit' => 'limit'
 		),
 		'textdomain' => 'live-query',
 		'editorScript' => 'file:./index.js',

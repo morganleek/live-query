@@ -2,7 +2,7 @@ import domReady from '@wordpress/dom-ready';
 import { createRoot, createPortal } from '@wordpress/element';
 import { useState, useEffect, useRef } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
-import { addQueryArgs, getQueryArgs, removeQueryArgs } from '@wordpress/url';
+import { addQueryArgs } from '@wordpress/url';
 // import Select from 'react-select';
 import classNames from 'classnames'
 
@@ -182,7 +182,6 @@ const LivePosts = ( { liveMore, liveFilters, filters, postType, limit } ) => {
 										<span className="posts-results">Showing {posts.length} posts in</span>
 									)}
 									{ Object.keys( filtersWithTerms ).map( tax => (
-										
 										<div 
 											className={ classNames( "filter-dropdown", [`filter-dropdown-${tax}`], { "filter-expanded": expandedFilters[tax] } ) }
 										>
