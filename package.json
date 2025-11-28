@@ -1,7 +1,7 @@
 {
-	"name": "everything-filter",
+	"name": "live-query",
 	"version": "1.0.0",
-	"description": "Gutenberg Query Block loaded via AJAX with dynamic taxonomy filters",
+	"description": "Gutenberg live loading Query Block",
 	"author": "Morgan Leek",
 	"license": "GPL-2.0-or-later",
 	"main": "build/index.js",

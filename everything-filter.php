@@ -1,7 +1,7 @@
 <?php
 /**
- * Plugin Name:       Everything Filter
- * Description:       Gutenberg Query Block loaded via AJAX with dynamic taxonomy filters
+ * Plugin Name:       Live Query
+ * Description:       Live loading query results with filtering and a load more button
  * Version:           1.0.0
  * Requires at least: 6.7
  * Requires PHP:      7.4
@@ -13,15 +13,15 @@
  * @package CreateBlock
  */
 
-define( 'EVERYTHING_FILTER_VERSION', '1.0.0' );
-define( 'EVERYTHING_FILTER_PLUGIN_DIR', plugin_dir_path(__FILE__) );
-define( 'EVERYTHING_FILTER_PLUGIN_URL', plugin_dir_url(__FILE__) );
+define( 'LIVE_QUERY_VERSION', '1.0.0' );
+define( 'LIVE_QUERY_PLUGIN_DIR', plugin_dir_path(__FILE__) );
+define( 'LIVE_QUERY_PLUGIN_URL', plugin_dir_url(__FILE__) );
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly.
 }
 
-class EverythingFilter {
+class LiveQuery {
 
 	// Constructor
 	public function __construct() {
@@ -30,12 +30,12 @@ class EverythingFilter {
 
 		// Register hooks
 		add_action('rest_api_init', array($this, 'register_rest_routes'));
-		add_action('init', array($this, 'create_block_everything_filter_block_init'));
+		add_action('init', array($this, 'create_block_live_query_block_init'));
 	}
 
 	// Load required dependencies
 	private function load_dependencies() {
-		require_once EVERYTHING_FILTER_PLUGIN_DIR . 'includes/class-everything-filter-api.php';
+		require_once LIVE_QUERY_PLUGIN_DIR . 'includes/class-live-query-api.php';
 	}
 
 	// Register REST API routes
@@ -44,7 +44,7 @@ class EverythingFilter {
 		$api->register_routes();
 	}
 
-	public function create_block_everything_filter_block_init() {
+	public function create_block_live_query_block_init() {
 		if ( function_exists( 'wp_register_block_types_from_metadata_collection' ) ) {
 			wp_register_block_types_from_metadata_collection( __DIR__ . '/build', __DIR__ . '/build/blocks-manifest.php' );
 			return;
@@ -62,13 +62,13 @@ class EverythingFilter {
 }
 
 // Initialize the plugin
-function everything_filter_init() {
-	new EverythingFilter();
+function live_query_init() {
+	new LiveQuery();
 }
-add_action('plugins_loaded', 'everything_filter_init');
+add_action('plugins_loaded', 'live_query_init');
 
-function everything_filter_flush() {
+function live_query_flush() {
 	flush_rewrite_rules(); // Flush rewrite rules
 }
-register_activation_hook(__FILE__, 'everything_filter_flush');
-register_deactivation_hook(__FILE__, 'everything_filter_flush');
+register_activation_hook(__FILE__, 'live_query_flush');
+register_deactivation_hook(__FILE__, 'live_query_flush');

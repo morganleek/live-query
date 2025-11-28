@@ -6,7 +6,7 @@ import { addQueryArgs } from '@wordpress/url';
 // import Select from 'react-select';
 import classNames from 'classnames'
 
-const LivePosts = ( { liveMore, liveFilters, filters, postType, limit } ) => {
+const LivePosts = ( { liveMore, liveFilters, filters, postType, limit, moreLabel } ) => {
 	const [posts, setPosts] = useState([]);
 	const [filtersLoaded, setFiltersLoaded] = useState( false );
 	const [filtersWithTerms, setFiltersWithTerms] = useState( null );
@@ -14,7 +14,7 @@ const LivePosts = ( { liveMore, liveFilters, filters, postType, limit } ) => {
 	const [currentPage, setCurrentPage] = useState(1);
 	const [totalPages, setTotalPages] = useState(1);
 	const [totalProjects, setTotalProjects] = useState(0);
-	const [loading, setLoading] = useState(false);
+	const [loading, setLoading] = useState( true );
 	const [initialLoad, setInitialLoad] = useState(true);
 
 	// handle click off 
@@ -23,7 +23,6 @@ const LivePosts = ( { liveMore, liveFilters, filters, postType, limit } ) => {
 	// const apiUrl = window.projectFiltersData.apiUrl;
 	const perPage = limit ? limit : 6;
 
-	// console.log( liveMore, liveFilters );
 	useEffect(() => {
 		if( liveFilters ) {
 			fetchTaxonomies();
@@ -54,7 +53,7 @@ const LivePosts = ( { liveMore, liveFilters, filters, postType, limit } ) => {
 		}
 
 		apiFetch( { 
-			path: addQueryArgs( '/everything-filter/v1/terms', queryParams )
+			path: addQueryArgs( '/live-query/v1/terms', queryParams )
 		} ).then( ( data ) => {
 			setFiltersWithTerms( data.taxonomyTerms );
 			setExpandedFilters( Object.fromEntries( Object.keys( data.taxonomyTerms ).map( key => [key, false] ) ) );
@@ -89,20 +88,20 @@ const LivePosts = ( { liveMore, liveFilters, filters, postType, limit } ) => {
 			};
 
 			apiFetch( { 
-				path: addQueryArgs( "everything-filter/v1/posts", params )
+				path: addQueryArgs( "live-query/v1/posts", params )
 			} ).then( ( res ) => {
 				setTotalPages( parseInt( res.total_pages ) );
 				setTotalProjects( parseInt( res.total ) );
 				setCurrentPage( page );
 				setInitialLoad( false );
 				setPosts( page === 1 ? res.posts : [...posts, ...res.posts] );
+				setLoading( false );
 				// return res.json();
 			} );
 		} catch (error) {
 			console.error('Error fetching posts:', error);
-		} finally {
-			setLoading(false);
-		}
+		} 
+		// finally {	}
 	};
 
 	const handleLoadMore = () => {
@@ -223,7 +222,7 @@ const LivePosts = ( { liveMore, liveFilters, filters, postType, limit } ) => {
 							disabled={loading}
 							className="load-more-btn"
 						>
-							{loading ? 'Loading...' : 'show more posts'}
+							{ moreLabel }
 						</button>
 					) } 
 					<p>Showing {posts.length} out of {totalProjects} posts</p>
@@ -232,7 +231,11 @@ const LivePosts = ( { liveMore, liveFilters, filters, postType, limit } ) => {
 			<>
 				{ loading && posts.length === 0 ? (
 					<div className="post-loading">
-						<p>Loading posts...</p>
+						<div className="post-grid">
+							{ [...Array(limit)].map( (_, i) => (
+								<div className={ "post-card loading type-" + postType }></div>
+							))}
+						</div>
 					</div>
 				) : posts.length === 0 ? (
 					<div className="post-no-results">
@@ -240,7 +243,7 @@ const LivePosts = ( { liveMore, liveFilters, filters, postType, limit } ) => {
 					</div>
 				) : (
 					<>
-						<div className="post-grid">
+						<div className={ classNames( "post-grid", { "in-load-more": loading } ) }>
 							{posts.map(post => (
 								<div className={ "post-card type-" + postType } dangerouslySetInnerHTML={{ __html: post.formatted }} />
 							))}
@@ -264,6 +267,7 @@ domReady( () => {
 		const postType = container.attributes.posttype.value;
 		const limit = parseInt( container.attributes.limit.value );
 		const filterlabels = liveFilters ? JSON.parse( liveFilters.attributes.filters.value ) : undefined;
+		const moreLabel = liveMore ? liveMore.attributes.content.value : "Load more";
 		// const mutliSelect = liveFilters && liveFilters.attributes.multiselect.value !== "1" ? false : true;
 		const root = createRoot(
 			livePosts
@@ -274,6 +278,7 @@ domReady( () => {
 			filters={ filterlabels }
 			postType={ postType }
 			limit={ limit }
+			moreLabel={ moreLabel }
 			// mutliSelect={ mutliSelect }
 		/> );
 	}

@@ -22,7 +22,7 @@ export default function Edit( { attributes, setAttributes, context } ) {
 			};
 
 			apiFetch( { 
-				path: addQueryArgs( "everything-filter/v1/posts", params )
+				path: addQueryArgs( "live-query/v1/posts", params )
 			} ).then( ( res ) => {
 				setPosts( res.posts );
 			} );

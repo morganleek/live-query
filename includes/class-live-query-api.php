@@ -15,7 +15,7 @@ class Project_Filters_API {
      */
     public function register_routes() {
         // Get filtered projects
-        register_rest_route('everything-filter/v1', '/posts', array(
+        register_rest_route('live-query/v1', '/posts', array(
             'methods' => 'GET',
             'callback' => array($this, 'get_posts'),
             'permission_callback' => '__return_true',
@@ -45,7 +45,7 @@ class Project_Filters_API {
         ));
 
         // Get all service taxonomy terms
-        register_rest_route('everything-filter/v1', '/terms', array(
+        register_rest_route('live-query/v1', '/terms', array(
             'methods' => 'GET',
             'callback' => array($this, 'get_terms'),
             'permission_callback' => '__return_true',
@@ -56,14 +56,14 @@ class Project_Filters_API {
         ));
 
         // // Get all service taxonomy terms
-        // register_rest_route('everything-filter/v1', '/services', array(
+        // register_rest_route('live-query/v1', '/services', array(
         //     'methods' => 'GET',
         //     'callback' => array($this, 'get_services'),
         //     'permission_callback' => '__return_true',
         // ));
 
         // // Get all industry taxonomy terms
-        // register_rest_route('everything-filter/v1', '/industries', array(
+        // register_rest_route('live-query/v1', '/industries', array(
         //     'methods' => 'GET',
         //     'callback' => array($this, 'get_industries'),
         //     'permission_callback' => '__return_true',
@@ -91,8 +91,8 @@ class Project_Filters_API {
             ), 200);
         }
 
-        $orderby = apply_filters( 'everything-filter-' . $post_type . '-orderby', 'date' );
-        $order = apply_filters( 'everything-filter-' . $post_type . '-order', 'DESC' );
+        $orderby = apply_filters( 'live-query-' . $post_type . '-orderby', 'date' );
+        $order = apply_filters( 'live-query-' . $post_type . '-order', 'DESC' );
 
         // Build query args
         $args = array(
@@ -168,7 +168,7 @@ class Project_Filters_API {
                     'services' => $services,
                     'industries' => $industries,
                     'date' => get_the_date('c'),
-                    'formatted' => apply_filters( "everything_filter_formatted" , $post_id )
+                    'formatted' => apply_filters( "live_query_formatted" , $post_id )
                 );
             }
             wp_reset_postdata();
@@ -245,7 +245,7 @@ class Project_Filters_API {
 }
 
 // Default format filter
-function everything_filter_formatted_default( $post_id ) {
+function live_query_formatted_default( $post_id ) {
     $type = get_post_type( $post_id );
 
     // featured image 
@@ -266,4 +266,4 @@ function everything_filter_formatted_default( $post_id ) {
     "</div>";
 }
 
-add_filter( "everything_filter_formatted", "everything_filter_formatted_default", 0, 1 );
+add_filter( "live_query_formatted", "live_query_formatted_default", 0, 1 );
