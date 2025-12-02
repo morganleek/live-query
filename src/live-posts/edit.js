@@ -34,11 +34,16 @@ export default function Edit( { attributes, setAttributes, context } ) {
 	};
 
 	useEffect( () => {
-		fetchPosts();
-	}, [] );
+		if( postType !== "" ) {
+			fetchPosts();
+		}
+	}, [postType, limit] );
 
 	return (
 		<div { ...useBlockProps() }>
+			{ postType === "" && (
+				<p className="no-type-selected">Select a post type</p>
+			) }
 			{ posts && (
 				<>
 					<div className="post-grid">

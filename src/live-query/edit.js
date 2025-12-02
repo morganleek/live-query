@@ -6,6 +6,16 @@ import './editor.scss';
 import { useEffect, useState } from '@wordpress/element';
 import { InnerBlocks } from '@wordpress/block-editor';
 
+const TEMPLATE = [
+	[ 'core/group', { layout: { type: "flex", flexWrap: "nowrap", justifyContent: "center" } }, [
+		[ 'scm/live-filters', {} ]
+	] ],
+	[ 'scm/live-posts', {} ],
+	[ 'core/group', { layout: { type: "flex", flexWrap: "nowrap", justifyContent: "center" } }, [
+		[ 'scm/live-more', {} ]
+	] ],
+];
+
 export default function Edit( { attributes, setAttributes } ) {
 	const { postType, limit } = attributes;
 	const [ postTypeOptions, setPostTypeOptions ] = useState( null );
@@ -57,7 +67,7 @@ export default function Edit( { attributes, setAttributes } ) {
 					/>
 				</PanelBody>
 			</InspectorControls>
-			<InnerBlocks />
+			<InnerBlocks template={ TEMPLATE } />
 		</div>
 	);
 }
