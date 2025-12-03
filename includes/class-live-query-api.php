@@ -158,6 +158,9 @@ class Project_Filters_API {
                 $services = wp_get_post_terms($post_id, 'service', array('fields' => 'names'));
                 $industries = wp_get_post_terms($post_id, 'industry', array('fields' => 'names'));
 
+                $html = live_query_formatted_default( $post_id ); 
+                $html = apply_filters( "live_query_formatted" , $post_id, $html );
+
                 $projects[] = array(
                     'id' => $post_id,
                     'title' => get_the_title(),
@@ -168,7 +171,7 @@ class Project_Filters_API {
                     'services' => $services,
                     'industries' => $industries,
                     'date' => get_the_date('c'),
-                    'formatted' => apply_filters( "live_query_formatted" , $post_id )
+                    'formatted' => $html
                 );
             }
             wp_reset_postdata();
@@ -266,4 +269,4 @@ function live_query_formatted_default( $post_id ) {
     "</div>";
 }
 
-add_filter( "live_query_formatted", "live_query_formatted_default", 0, 1 );
+// add_filter( "live_query_formatted", "live_query_formatted_default", 0, 1 );
