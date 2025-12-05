@@ -24,25 +24,23 @@ const LivePosts = ( { liveMore, liveFilters, filters, postType, limit, moreLabel
 	const perPage = limit ? limit : 6;
 
 	useEffect(() => {
-		if( postType.length > 0 ) {
-			if( liveFilters ) {
-				fetchTaxonomies();
-			}
-			setFiltersLoaded( true );
-	
-			// mouse event handler
-			document.addEventListener( 'mousedown', handleClickOutside );
-	
-			// Clean up event listener on unmount
-			return () => {
-				document.removeEventListener( 'mousedown', handleClickOutside );
-			};
+		if( liveFilters ) {
+			fetchTaxonomies();
 		}
+		setFiltersLoaded( true );
+
+		// mouse event handler
+		document.addEventListener( 'mousedown', handleClickOutside );
+
+		// Clean up event listener on unmount
+		return () => {
+			document.removeEventListener( 'mousedown', handleClickOutside );
+		};
 	}, []);
 
 	// Fetch projects when filters change
 	useEffect(() => {
-		if( postType && filtersLoaded ) {
+		if( postType.length > 0 && filtersLoaded ) {
 			fetchPosts( 1, false );
 		}
 	}, [filtersWithTerms]);
@@ -52,6 +50,9 @@ const LivePosts = ( { liveMore, liveFilters, filters, postType, limit, moreLabel
 
 		if( filters ) {
 			queryParams.taxonomies = Object.keys( filters );
+		}
+		else {
+			console.log( "no filters" );
 		}
 
 		apiFetch( { 
