@@ -224,7 +224,7 @@ const LivePosts = ( { liveMore, liveFilters, filters, postType, limit, moreLabel
 											>
 												{ filters[tax] ? filters[tax] : "Select an option" }
 											</button>
-											{ ( expandedFilters[tax] === true || layout === "list" ) && (
+											{ expandedFilters[tax] === true && layout === "select" && (
 												<div className="dropdown">
 													{ filtersWithTerms[tax].map( term => (
 														<label>
@@ -239,6 +239,20 @@ const LivePosts = ( { liveMore, liveFilters, filters, postType, limit, moreLabel
 															{term.name}</label>
 													) ) }
 												</div>
+											) }
+											{ layout === "list" && (
+												filtersWithTerms[tax].map( term => (
+													<label>
+														<span className="checkbox-wrapper">
+															<input 
+																type="checkbox"
+																onChange={ () => updateSearchTerm( tax, term.slug, !term.selected ) }
+																checked={ term.selected === 1 }
+																value="1"
+															/>
+														</span>
+														{term.name}</label>
+												) )
 											) }
 										</div>
 									) ) }
