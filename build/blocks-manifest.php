@@ -41,6 +41,10 @@ return array(
 			'multiSelect' => array(
 				'type' => 'boolean',
 				'default' => true
+			),
+			'layout' => array(
+				'type' => 'string',
+				'default' => 'select'
 			)
 		),
 		'textdomain' => 'live-filters',

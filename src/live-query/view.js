@@ -6,7 +6,7 @@ import { addQueryArgs } from '@wordpress/url';
 // import Select from 'react-select';
 import classNames from 'classnames'
 
-const LivePosts = ( { liveMore, liveFilters, filters, postType, limit, moreLabel } ) => {
+const LivePosts = ( { liveMore, liveFilters, filters, postType, limit, moreLabel, layout } ) => {
 	const [posts, setPosts] = useState([]);
 	const [filtersLoaded, setFiltersLoaded] = useState( false );
 	const [filtersWithTerms, setFiltersWithTerms] = useState( null );
@@ -160,8 +160,30 @@ const LivePosts = ( { liveMore, liveFilters, filters, postType, limit, moreLabel
 		} );
 	}
 
+	const clearSearchTerm = ( tax ) => {
+		setCurrentPage( 1 );
+
+		const newTaxTerms = {}
+		newTaxTerms[tax] = filtersWithTerms[tax].map( insideTerm => {
+			return { ...insideTerm, selected: 0 }
+			// if( insideTerm.slug === slug ) {
+			// }
+			// return insideTerm;
+		} );
+
+		setFiltersWithTerms(
+			{ ...filtersWithTerms, 
+				...newTaxTerms
+			}
+		);
+		
+		setUpdatedURL( { 
+			...newTaxTerms
+		} );
+	}
+
 	const handleClickOutside = ( e ) => {
-		if( e.target.closest( ".filter-dropdown") === null ) {
+		if( e.target.closest( ".filter-select") === null ) {
 			setExpandedFilters( 
 				Object.fromEntries(
 					Object.keys( expandedFilters ).map( key => [key, false] )
@@ -187,15 +209,22 @@ const LivePosts = ( { liveMore, liveFilters, filters, postType, limit, moreLabel
 									)}
 									{ Object.keys( filtersWithTerms ).map( tax => (
 										<div 
-											className={ classNames( "filter-dropdown", [`filter-dropdown-${tax}`], { "filter-expanded": expandedFilters[tax] } ) }
+											className={ classNames( `filter-${layout}`, [`filter-${layout}-${tax}`], { "filter-expanded": expandedFilters[tax] } ) }
 										>
 											<button 
 												className="filter-label"
-												onClick={ () => setExpandedFilters( { ...{ [tax]: !expandedFilters[tax] } } ) }
+												onClick={ () => {
+													if( layout === "select" ) {
+														setExpandedFilters( { ...{ [tax]: !expandedFilters[tax] } } )
+													}
+													else {
+														clearSearchTerm( tax )
+													}
+												} }
 											>
 												{ filters[tax] ? filters[tax] : "Select an option" }
 											</button>
-											{ expandedFilters[tax] === true && (
+											{ ( expandedFilters[tax] === true || layout === "list" ) && (
 												<div className="dropdown">
 													{ filtersWithTerms[tax].map( term => (
 														<label>
@@ -273,6 +302,8 @@ domReady( () => {
 		const limit = parseInt( container.attributes.limit.value );
 		const filterlabels = liveFilters ? JSON.parse( liveFilters.attributes.filters.value ) : undefined;
 		const moreLabel = liveMore ? liveMore.attributes.content.value : "Load more";
+		const layout = liveFilters ? liveFilters.attributes.layout.value : "select";
+
 		// const mutliSelect = liveFilters && liveFilters.attributes.multiselect.value !== "1" ? false : true;
 		const root = createRoot(
 			livePosts
@@ -284,6 +315,7 @@ domReady( () => {
 			postType={ postType }
 			limit={ limit }
 			moreLabel={ moreLabel }
+			layout={ layout }
 			// mutliSelect={ mutliSelect }
 		/> );
 	}

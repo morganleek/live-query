@@ -1,12 +1,12 @@
 import { __ } from '@wordpress/i18n';
 import { InspectorControls, useBlockProps } from '@wordpress/block-editor';
-import { PanelBody, ToggleControl, TextControl, CheckboxControl } from '@wordpress/components';
+import { PanelBody, ToggleControl, TextControl, CheckboxControl, SelectControl } from '@wordpress/components';
 import apiFetch from '@wordpress/api-fetch';
 import './editor.scss';
 import { useEffect, useState } from '@wordpress/element';
 
 export default function Edit( { attributes, setAttributes } ) {
-	const { filters, filterLabels, multiSelect } = attributes;
+	const { filters, filterLabels, multiSelect, layout } = attributes;
 	const [ taxonomies, setTaxonomies ] = useState( null );
 
 	useEffect( () => {
@@ -60,6 +60,17 @@ export default function Edit( { attributes, setAttributes } ) {
 						__nextHasNoMarginBottom
 						__next40pxDefaultSize
 					/>
+					<SelectControl
+            label="Layout"
+            value={ layout }
+            options={ [
+                { label: 'Select', value: 'select' },
+                { label: 'List', value: 'list' },
+            ] }
+            onChange={ ( newLayout ) => setAttributes( { layout: newLayout } ) }
+            __next40pxDefaultSize
+            __nextHasNoMarginBottom
+					/>
 				</PanelBody>
 				{ taxonomies && (
 					<PanelBody title={ __( 'Filters' ) }>
@@ -87,11 +98,17 @@ export default function Edit( { attributes, setAttributes } ) {
 			<div className="filter-group">
 				<span className="posts-results">Showing X posts in</span>
 				{ taxonomies && filters && filterLabels && filters.map( filter => (
-					<div className="filter-dropdown">
-						<button className="filter-label">
-							{ filterLabels[filter] ? filterLabels[filter] : "Select an option" }
-						</button>
-					</div>
+					layout === "select" ? (
+						<div className="filter-dropdown">
+							<button className="filter-label">
+								{ filterLabels[filter] ? filterLabels[filter] : "Select an option" }
+							</button>
+						</div>
+					) : (
+						<div className="filter-list">
+							{ filterLabels[filter] ? filterLabels[filter] : "List of options" }
+						</div>
+					)
 				) ) }
 				{ filters.length === 0 && ( <p>Select at least one filter</p> ) }
 			</div>

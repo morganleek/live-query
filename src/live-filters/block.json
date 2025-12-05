@@ -27,6 +27,10 @@
     "multiSelect": {
       "type": "boolean",
       "default": true
+    },
+    "layout": {
+      "type": "string",
+      "default": "select"
     }
   },
   "textdomain": "live-filters",

@@ -159,7 +159,7 @@ class Project_Filters_API {
                 $industries = wp_get_post_terms($post_id, 'industry', array('fields' => 'names'));
 
                 $html = live_query_formatted_default( $post_id ); 
-                $html = apply_filters( "live_query_formatted" , $post_id, $html );
+                $html = apply_filters( "live_query_formatted", $html, $post_id );
 
                 $projects[] = array(
                     'id' => $post_id,
@@ -268,5 +268,3 @@ function live_query_formatted_default( $post_id ) {
         "</a>" . 
     "</div>";
 }
-
-// add_filter( "live_query_formatted", "live_query_formatted_default", 0, 1 );

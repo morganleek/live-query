@@ -6,9 +6,11 @@
 		gap: 1rem;
 		align-items: center;
 	}
-	.filter-dropdown {
+	.filter-dropdown,
+	.filter-select {
 		position: relative;
 		border: 1px solid;
+		min-width: 200px;
 		button {
 			width: 100%;
 			border: 0 none;
@@ -27,7 +29,8 @@
 				clip-path: path("M11,11.58c-.1,0-.2-.04-.28-.11L.12,1.1c-.16-.15-.16-.4,0-.56.15-.16.4-.16.56,0l10.33,10.1L21.33.53c.16-.15.41-.15.56,0,.15.16.15.41,0,.56l-10.6,10.37c-.08.08-.18.11-.28.11Z");
 			}
 		}
-		.dropdown {
+		.dropdown,
+		.select {
 			display: flex;
 			flex-direction: column;
 			position: absolute;
