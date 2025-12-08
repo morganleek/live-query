@@ -27,6 +27,9 @@ const LivePosts = ( { liveMore, liveFilters, filters, postType, limit, moreLabel
 		if( liveFilters ) {
 			fetchTaxonomies();
 		}
+		else {
+			setFiltersWithTerms( {} );
+		}
 		setFiltersLoaded( true );
 
 		// mouse event handler
@@ -58,6 +61,7 @@ const LivePosts = ( { liveMore, liveFilters, filters, postType, limit, moreLabel
 		apiFetch( { 
 			path: addQueryArgs( '/live-query/v1/terms', queryParams )
 		} ).then( ( data ) => {
+			console.log( data.taxonomyTerms );
 			setFiltersWithTerms( data.taxonomyTerms );
 			setExpandedFilters( Object.fromEntries( Object.keys( data.taxonomyTerms ).map( key => [key, false] ) ) );
 		} );
