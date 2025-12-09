@@ -92,7 +92,7 @@ class Project_Filters_API {
         }
 
         $orderby = apply_filters( 'live-query-' . $post_type . '-orderby', 'date' );
-        $order = apply_filters( 'live-query-' . $post_type . '-order', 'DESC' );
+        $order = apply_filters( 'live-query-' . $post_type . '-order', 'DESC' );        
 
         // Build query args
         $args = array(
@@ -162,11 +162,14 @@ class Project_Filters_API {
                 $html = apply_filters( "live_query_formatted", $html, $post_id );
                 $html = apply_filters( "live_query_" . $post_type . "_formatted", $html, $post_id );
 
+                $content = get_post_field( 'post_content', $post_id );
+
                 $projects[] = array(
                     'id' => $post_id,
                     'title' => get_the_title(),
                     'excerpt' => str_replace( " [&hellip;]", "", get_the_excerpt() ),
-                    'content' => get_the_content(),
+                    'content' => $content,
+                    'rendered' => apply_filters('the_content', $content),
                     'link' => get_permalink(),
                     'featured_image' => $featured_image,
                     'services' => $services,
