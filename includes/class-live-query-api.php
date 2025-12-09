@@ -160,6 +160,7 @@ class Project_Filters_API {
 
                 $html = live_query_formatted_default( $post_id ); 
                 $html = apply_filters( "live_query_formatted", $html, $post_id );
+                $html = apply_filters( "live_query_" . $post_type . "_formatted", $html, $post_id );
 
                 $projects[] = array(
                     'id' => $post_id,
