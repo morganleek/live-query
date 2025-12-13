@@ -2,11 +2,11 @@ import domReady from '@wordpress/dom-ready';
 import { createRoot, createPortal } from '@wordpress/element';
 import { useState, useEffect, useRef } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
-import { addQueryArgs } from '@wordpress/url';
+import { addQueryArgs, getQueryArgs } from '@wordpress/url';
 // import Select from 'react-select';
 import classNames from 'classnames'
 
-const LivePosts = ( { liveMore, liveFilters, filters, postType, limit, moreLabel, layout, hideEmpty } ) => {
+const LivePosts = ( { liveMore, liveFilters, filters, postType, limit, moreLabel, layout, hideEmpty, initFilters } ) => {
 	const [posts, setPosts] = useState([]);
 	const [filtersLoaded, setFiltersLoaded] = useState( false );
 	const [filtersWithTerms, setFiltersWithTerms] = useState( null );
@@ -61,8 +61,23 @@ const LivePosts = ( { liveMore, liveFilters, filters, postType, limit, moreLabel
 		apiFetch( { 
 			path: addQueryArgs( '/live-query/v1/terms', queryParams )
 		} ).then( ( data ) => {
-			setFiltersWithTerms( data.taxonomyTerms );
-			setExpandedFilters( Object.fromEntries( Object.keys( data.taxonomyTerms ).map( key => [key, false] ) ) );
+			// if( initFilters.length > 0 ) {
+			const tempTaxTerms = data.taxonomyTerms;
+			Object.keys( initFilters ).forEach( key => (
+					tempTaxTerms[key] = tempTaxTerms[key].map( term => ( 
+						{ ...term, selected: initFilters[key].includes( term.slug ) ? 1 : 0 }						
+					) )
+				)
+			);
+
+			setFiltersWithTerms( tempTaxTerms );
+			setExpandedFilters( 
+				Object.fromEntries( 
+					Object.keys( data.taxonomyTerms ).map( 
+						key => [key, false] 
+					) 
+				) 
+			);
 		} );
 
 	};
@@ -323,6 +338,19 @@ domReady( () => {
 
 		// const mutliSelect = liveFilters && liveFilters.attributes.multiselect.value !== "1" ? false : true;
 		const hideEmpty = liveFilters && liveFilters.attributes.hideempty.value !== "1" ? false : true;
+		
+		// query args
+		const args = getQueryArgs( window.location.href );
+		const initFilters = {};
+		Object.keys( filterlabels ).forEach( tax => {
+			if( args[tax] ) {
+				initFilters[tax] = args[tax].split( "," );
+			}
+		} );
+		// const initService = args.service ? args.service : '';
+		// const initIndustry = args.industry ? args.industry : '';
+		
+		
 		const root = createRoot(
 			livePosts
 		);
@@ -330,6 +358,7 @@ domReady( () => {
 			liveMore={ liveMore }
 			liveFilters={ liveFilters }
 			filters={ filterlabels }
+			initFilters={ initFilters }
 			postType={ postType }
 			limit={ limit }
 			moreLabel={ moreLabel }
