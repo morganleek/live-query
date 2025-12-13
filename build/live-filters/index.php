@@ -1,6 +1,6 @@
 <?php
 	extract( $attributes );
-	print "<pre>" . print_r( $attributes, true ) . "</pre>";
+	// print "<pre>" . print_r( $attributes, true ) . "</pre>";
 ?>	
 <div class="wp-block-scm-live-filters"
 	filters='<?php print wp_json_encode( $filterLabels ); ?>'

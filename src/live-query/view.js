@@ -58,11 +58,9 @@ const LivePosts = ( { liveMore, liveFilters, filters, postType, limit, moreLabel
 			queryParams["hide_empty"] = "1";
 		}
 
-		console.log( queryParams );
 		apiFetch( { 
 			path: addQueryArgs( '/live-query/v1/terms', queryParams )
 		} ).then( ( data ) => {
-			// console.log( data.taxonomyTerms );
 			setFiltersWithTerms( data.taxonomyTerms );
 			setExpandedFilters( Object.fromEntries( Object.keys( data.taxonomyTerms ).map( key => [key, false] ) ) );
 		} );
