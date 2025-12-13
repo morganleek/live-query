@@ -61,7 +61,7 @@ const LivePosts = ( { liveMore, liveFilters, filters, postType, limit, moreLabel
 		apiFetch( { 
 			path: addQueryArgs( '/live-query/v1/terms', queryParams )
 		} ).then( ( data ) => {
-			console.log( data.taxonomyTerms );
+			// console.log( data.taxonomyTerms );
 			setFiltersWithTerms( data.taxonomyTerms );
 			setExpandedFilters( Object.fromEntries( Object.keys( data.taxonomyTerms ).map( key => [key, false] ) ) );
 		} );
@@ -240,7 +240,7 @@ const LivePosts = ( { liveMore, liveFilters, filters, postType, limit, moreLabel
 																	value="1"
 																/>
 															</span>
-															{term.name}</label>
+															<span dangerouslySetInnerHTML={{ __html: term.name }} /></label>
 													) ) }
 												</div>
 											) }
