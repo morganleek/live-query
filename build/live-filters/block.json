@@ -33,6 +33,10 @@
       "type": "boolean",
       "default": true
     },
+    "hideEmpty": {
+      "type": "boolean",
+      "default": false
+    },
     "layout": {
       "type": "string",
       "default": "select"

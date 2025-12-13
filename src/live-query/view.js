@@ -6,7 +6,7 @@ import { addQueryArgs } from '@wordpress/url';
 // import Select from 'react-select';
 import classNames from 'classnames'
 
-const LivePosts = ( { liveMore, liveFilters, filters, postType, limit, moreLabel, layout } ) => {
+const LivePosts = ( { liveMore, liveFilters, filters, postType, limit, moreLabel, layout, hideEmpty } ) => {
 	const [posts, setPosts] = useState([]);
 	const [filtersLoaded, setFiltersLoaded] = useState( false );
 	const [filtersWithTerms, setFiltersWithTerms] = useState( null );
@@ -54,8 +54,8 @@ const LivePosts = ( { liveMore, liveFilters, filters, postType, limit, moreLabel
 		if( filters ) {
 			queryParams.taxonomies = Object.keys( filters );
 		}
-		else {
-			console.log( "no filters" );
+		if( hideEmpty ) {
+			queryParams["hide_empty"] = "1";
 		}
 
 		apiFetch( { 
@@ -207,7 +207,7 @@ const LivePosts = ( { liveMore, liveFilters, filters, postType, limit, moreLabel
 					<div className="posts-header">
 						{ filtersWithTerms && (
 							<div className="posts-filters-controls">
-								<div className="filter-group">
+								<div className="live-query-filter-group">
 									{!initialLoad && (
 										<span className="posts-results">Showing {posts.length} posts in</span>
 									)}
@@ -323,6 +323,7 @@ domReady( () => {
 		const layout = liveFilters ? liveFilters.attributes.layout.value : "select";
 
 		// const mutliSelect = liveFilters && liveFilters.attributes.multiselect.value !== "1" ? false : true;
+		const hideEmpty = liveFilters && liveFilters.attributes.hideempty.value !== "1" ? false : true;
 		const root = createRoot(
 			livePosts
 		);
@@ -334,6 +335,7 @@ domReady( () => {
 			limit={ limit }
 			moreLabel={ moreLabel }
 			layout={ layout }
+			hideEmpty={ hideEmpty }
 			// mutliSelect={ mutliSelect }
 		/> );
 	}

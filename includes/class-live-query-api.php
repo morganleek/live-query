@@ -49,9 +49,15 @@ class Project_Filters_API {
             'methods' => 'GET',
             'callback' => array($this, 'get_terms'),
             'permission_callback' => '__return_true',
-            'taxonomy' => array(
-                'default' => '',
-                'sanitize_callback' => 'sanitize_text_field',
+            'args' => array(
+                'taxonomy' => array(
+                    'default' => '',
+                    'sanitize_callback' => 'sanitize_text_field',
+                ),
+                'hide_empty' => array(
+                    'default' => false,
+                    'sanitize_callback' => 'rest_sanitize_boolean',
+                )
             )
         ));
 
@@ -194,6 +200,7 @@ class Project_Filters_API {
      */
     public function get_terms($request) {
         $taxonomies = $request->get_param('taxonomies');
+        $hide_empty = $request->get_param('hide_empty') ?: false;
         $taxonomyTerms = array();
 
         if( empty( $taxonomies ) ) {
@@ -203,7 +210,7 @@ class Project_Filters_API {
         foreach( $taxonomies as $t ) {
             $terms = get_terms(array(
                 'taxonomy' => $t,
-                'hide_empty' => false,
+                'hide_empty' => $hide_empty,
             ));
     
             if ( is_wp_error( $terms ) ) {

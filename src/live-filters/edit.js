@@ -6,7 +6,7 @@ import './editor.scss';
 import { useEffect, useState } from '@wordpress/element';
 
 export default function Edit( { attributes, setAttributes } ) {
-	const { filters, filterLabels, multiSelect, layout } = attributes;
+	const { filters, filterLabels, multiSelect, hideEmpty, layout } = attributes;
 	const [ taxonomies, setTaxonomies ] = useState( null );
 
 	useEffect( () => {
@@ -60,6 +60,15 @@ export default function Edit( { attributes, setAttributes } ) {
 						__nextHasNoMarginBottom
 						__next40pxDefaultSize
 					/>
+					<ToggleControl
+            checked={ hideEmpty }
+            label="Hide empty terms"
+						value={ hideEmpty }
+						onChange={ ( newValue ) => { setAttributes( { hideEmpty: newValue } ) } }
+						__nextHasNoMarginBottom
+						__next40pxDefaultSize
+					/>
+					
 					<SelectControl
             label="Layout"
             value={ layout }
@@ -95,7 +104,7 @@ export default function Edit( { attributes, setAttributes } ) {
 					</PanelBody>
 				) }
 			</InspectorControls>
-			<div className="filter-group">
+			<div className="live-query-filter-group">
 				<span className="posts-results">Showing X posts in</span>
 				{ taxonomies && filters && filterLabels && filters.map( filter => (
 					layout === "select" ? (

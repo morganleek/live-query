@@ -42,6 +42,10 @@ return array(
 				'type' => 'boolean',
 				'default' => true
 			),
+			'hideEmpty' => array(
+				'type' => 'boolean',
+				'default' => false
+			),
 			'layout' => array(
 				'type' => 'string',
 				'default' => 'select'
@@ -130,12 +134,69 @@ return array(
 			
 		),
 		'supports' => array(
-			'html' => false
+			'html' => false,
+			'align' => array(
+				'wide',
+				'full'
+			),
+			'background' => array(
+				'backgroundImage' => true,
+				'backgroundSize' => true,
+				'__experimentalDefaultControls' => array(
+					'backgroundImage' => true
+				)
+			),
+			'color' => array(
+				'gradients' => true,
+				'heading' => true,
+				'button' => true,
+				'link' => true,
+				'__experimentalDefaultControls' => array(
+					'background' => true,
+					'text' => true
+				)
+			),
+			'shadow' => true,
+			'spacing' => array(
+				'margin' => array(
+					'top',
+					'bottom'
+				),
+				'padding' => true,
+				'blockGap' => true,
+				'__experimentalDefaultControls' => array(
+					'padding' => true,
+					'blockGap' => true
+				)
+			),
+			'dimensions' => array(
+				'minHeight' => true
+			),
+			'typography' => array(
+				'fontSize' => true,
+				'lineHeight' => true,
+				'__experimentalFontFamily' => true,
+				'__experimentalFontWeight' => true,
+				'__experimentalFontStyle' => true,
+				'__experimentalTextTransform' => true,
+				'__experimentalTextDecoration' => true,
+				'__experimentalLetterSpacing' => true,
+				'__experimentalDefaultControls' => array(
+					'fontSize' => true
+				)
+			),
+			'layout' => array(
+				'allowSizingOnChildren' => true
+			),
+			'interactivity' => array(
+				'clientNavigation' => true
+			),
+			'allowedBlocks' => true
 		),
 		'attributes' => array(
 			'postType' => array(
 				'type' => 'string',
-				'default' => ''
+				'default' => 'post'
 			),
 			'limit' => array(
 				'type' => 'integer',
