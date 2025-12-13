@@ -58,6 +58,7 @@ const LivePosts = ( { liveMore, liveFilters, filters, postType, limit, moreLabel
 			queryParams["hide_empty"] = "1";
 		}
 
+		console.log( queryParams );
 		apiFetch( { 
 			path: addQueryArgs( '/live-query/v1/terms', queryParams )
 		} ).then( ( data ) => {
