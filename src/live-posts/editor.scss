@@ -4,3 +4,9 @@
 .no-type-selected {
 	text-align: center;
 }
+
+.post-card {
+	a {
+		pointer-events: none;
+	}
+}

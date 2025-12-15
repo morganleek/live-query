@@ -342,11 +342,13 @@ domReady( () => {
 		// query args
 		const args = getQueryArgs( window.location.href );
 		const initFilters = {};
-		Object.keys( filterlabels ).forEach( tax => {
-			if( args[tax] ) {
-				initFilters[tax] = args[tax].split( "," );
-			}
-		} );
+		if( filterlabels ) {
+			Object.keys( filterlabels ).forEach( tax => {
+				if( args[tax]?.length > 0 ) {
+					initFilters[tax] = args[tax].split( "," );
+				}
+			} );
+		}
 		// const initService = args.service ? args.service : '';
 		// const initIndustry = args.industry ? args.industry : '';
 		

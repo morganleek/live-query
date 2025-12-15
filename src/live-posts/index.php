@@ -1,3 +1,1 @@
-<div class="wp-block-scm-live-posts">
-	<p>Loading...</p>
-</div>
+<div class="wp-block-scm-live-posts"></div>
