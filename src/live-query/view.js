@@ -62,7 +62,11 @@ const refreshNonce = async () => {
 	}
 };
 
-const LivePosts = ({ liveMore, liveFilters, filters, postType, limit, moreLabel, layout, hideEmpty, initFilters, additionalParams = {}, staticTaxQuery = {}, rootUrl, urlRewriteEnabled, urlRewriteFrom, urlRewriteTo }) => {
+// URL query arg holding the live search keyword — avoids WordPress' reserved `s` / `search` query vars
+const SEARCH_ARG = 'keyword';
+const SEARCH_DEBOUNCE = 400;
+
+const LivePosts = ({ liveMore, liveFilters, liveSearch, searchLabel, searchPlaceholder, searchShowLabel, initSearch = '', filters, postType, limit, moreLabel, layout, hideEmpty, initFilters, additionalParams = {}, staticTaxQuery = {}, rootUrl, urlRewriteEnabled, urlRewriteFrom, urlRewriteTo }) => {
 	const [posts, setPosts] = useState([]);
 	const [filtersLoaded, setFiltersLoaded] = useState(false);
 	const [filtersWithTerms, setFiltersWithTerms] = useState(null);
@@ -73,9 +77,13 @@ const LivePosts = ({ liveMore, liveFilters, filters, postType, limit, moreLabel,
 	const [totalProjects, setTotalProjects] = useState(0);
 	const [loading, setLoading] = useState(true);
 	const [initialLoad, setInitialLoad] = useState(true);
+	const [searchInput, setSearchInput] = useState(initSearch);
+	const [searchTerm, setSearchTerm] = useState(initSearch);
 
 	// handle click off
 	const clickDocument = useRef(null);
+	// id of the latest posts request, so slower stale responses are ignored
+	const latestRequest = useRef(0);
 
 	// const apiUrl = window.projectFiltersData.apiUrl;
 	const perPage = limit ? limit : 6;
@@ -98,12 +106,22 @@ const LivePosts = ({ liveMore, liveFilters, filters, postType, limit, moreLabel,
 		};
 	}, []);
 
-	// Fetch projects when filters change
+	// Fetch projects when filters or the search term change
 	useEffect(() => {
 		if (postType.length > 0 && filtersLoaded) {
 			fetchPosts(1, false);
 		}
-	}, [filtersWithTerms]);
+	}, [filtersWithTerms, searchTerm]);
+
+	// Debounce typing into the search box before it triggers a fetch
+	useEffect(() => {
+		const trimmed = searchInput.trim();
+		if (trimmed === searchTerm) {
+			return;
+		}
+		const timeout = setTimeout(() => applySearch(trimmed), SEARCH_DEBOUNCE);
+		return () => clearTimeout(timeout);
+	}, [searchInput]);
 
 	const fetchTaxonomies = async () => {
 		await refreshNonce();
@@ -146,6 +164,7 @@ const LivePosts = ({ liveMore, liveFilters, filters, postType, limit, moreLabel,
 	};
 
 	const fetchPosts = async (page = 1, append = false) => {
+		const requestId = ++latestRequest.current;
 		await refreshNonce();
 		// let queryParams = { ...additionalParams };
 		setLoading(true);
@@ -174,7 +193,8 @@ const LivePosts = ({ liveMore, liveFilters, filters, postType, limit, moreLabel,
 				post_type: postType,
 				...(exclude && postId && { exclude: postId[1] }),
 				tax_query: taxQuery,
-				static_tax_query: staticTaxQuery
+				static_tax_query: staticTaxQuery,
+				...(searchTerm && { search: searchTerm })
 			};
 			console.log( params );
 			
@@ -187,6 +207,9 @@ const LivePosts = ({ liveMore, liveFilters, filters, postType, limit, moreLabel,
 				return response.json();
 			} )
 			.then((res) => {
+				if (requestId !== latestRequest.current) {
+					return;
+				}
 				const fetchedPosts = urlRewriteEnabled && urlRewriteFrom && urlRewriteTo
 					? (res.posts || []).map((post) => rewritePostUrls(post, urlRewriteFrom, urlRewriteTo))
 					: res.posts;
@@ -211,10 +234,10 @@ const LivePosts = ({ liveMore, liveFilters, filters, postType, limit, moreLabel,
 
 	const baseURL = () => window.location.href.split("?")[0];
 
-	const setUpdatedURL = (newTerms) => {
+	const setUpdatedURL = (newTerms = {}, keyword = searchTerm) => {
 		const taxQuery = {};
 		const allTerms = { ...filtersWithTerms, ...newTerms };
-		Object.keys(allTerms).map(key => {
+		Object.keys(allTerms || {}).map(key => {
 			taxQuery[key] = [];
 			allTerms[key].forEach(t => {
 				if (t.selected === 1) {
@@ -222,8 +245,25 @@ const LivePosts = ({ liveMore, liveFilters, filters, postType, limit, moreLabel,
 				}
 			})
 		});
+		if (keyword) {
+			taxQuery[SEARCH_ARG] = keyword;
+		}
 		const url = addQueryArgs(baseURL(), taxQuery);
 		window.history.pushState({}, "Page", url);
+	}
+
+	const applySearch = (keyword) => {
+		if (keyword === searchTerm) {
+			return;
+		}
+		setCurrentPage(1);
+		setSearchTerm(keyword);
+		setUpdatedURL({}, keyword);
+	}
+
+	const clearSearch = () => {
+		setSearchInput('');
+		applySearch('');
 	}
 
 	const updateSearchTerm = (tax, slug, state) => {
@@ -392,6 +432,43 @@ const LivePosts = ({ liveMore, liveFilters, filters, postType, limit, moreLabel,
 					</div>
 				</>
 			), liveFilters)}
+			{liveSearch && createPortal((
+				<form
+					className="live-query-search"
+					role="search"
+					onSubmit={(e) => {
+						e.preventDefault();
+						applySearch(searchInput.trim());
+					}}
+				>
+					<label
+						className={classNames("search-label", { "screen-reader-text": !searchShowLabel })}
+						htmlFor="live-query-search-input"
+					>
+						{searchLabel}
+					</label>
+					<div className="search-field">
+						<input
+							id="live-query-search-input"
+							type="search"
+							className="search-input"
+							placeholder={searchPlaceholder}
+							value={searchInput}
+							onChange={(e) => setSearchInput(e.target.value)}
+						/>
+						{searchInput.length > 0 && (
+							<button
+								type="button"
+								className="search-clear"
+								aria-label="Clear search"
+								onClick={clearSearch}
+							>
+								&times;
+							</button>
+						)}
+					</div>
+				</form>
+			), liveSearch)}
 			{liveMore && createPortal((
 				<div className="live-posts-more">
 					{hasMoreProjects && (
@@ -439,6 +516,7 @@ domReady(() => {
 	if (livePosts) {
 		const liveMore = container.querySelector('.wp-block-scm-live-more');
 		const liveFilters = container.querySelector('.wp-block-scm-live-filters');
+		const liveSearch = container.querySelector('.wp-block-scm-live-search');
 		// attributes
 		const postType = container.attributes.posttype.value;
 		const limit = parseInt(container.attributes.limit.value);
@@ -481,6 +559,11 @@ domReady(() => {
 				}
 			});
 		}
+		const initSearch = liveSearch && typeof args[SEARCH_ARG] === 'string' ? args[SEARCH_ARG].trim() : '';
+		const searchLabel = liveSearch?.attributes.label?.value || 'Search';
+		const searchPlaceholder = liveSearch?.attributes.placeholder?.value || '';
+		const searchShowLabel = liveSearch?.attributes.showlabel?.value === "1";
+
 		// const initService = args.service ? args.service : '';
 		// const initIndustry = args.industry ? args.industry : '';
 
@@ -490,6 +573,11 @@ domReady(() => {
 		root.render(<LivePosts
 			liveMore={liveMore}
 			liveFilters={liveFilters}
+			liveSearch={liveSearch}
+			searchLabel={searchLabel}
+			searchPlaceholder={searchPlaceholder}
+			searchShowLabel={searchShowLabel}
+			initSearch={initSearch}
 			filters={filterlabels}
 			initFilters={initFilters}
 			postType={postType}

@@ -1,0 +1,37 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "scm/live-search",
+  "version": "1.0.0",
+  "title": "Live Search",
+  "category": "widgets",
+  "icon": "search",
+  "description": "Search box that narrows Live Query results by title, content and taxonomy terms",
+  "example": {},
+  "supports": {
+    "html": false
+  },
+  "ancestor": [
+    "scm/live-query"
+  ],
+  "attributes": {
+    "label": {
+      "type": "string",
+      "default": "Search"
+    },
+    "showLabel": {
+      "type": "boolean",
+      "default": false
+    },
+    "placeholder": {
+      "type": "string",
+      "default": "Search..."
+    }
+  },
+  "textdomain": "live-search",
+  "editorScript": "file:./index.js",
+  "editorStyle": "file:./index.css",
+  "style": "file:./style-index.css",
+  "viewScript": "file:./view.js",
+  "render": "file:./index.php"
+}

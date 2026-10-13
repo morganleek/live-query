@@ -237,6 +237,45 @@ return array(
 		'style' => 'file:./style-index.css',
 		'viewScript' => 'file:./view.js'
 	),
+	'live-search' => array(
+		'$schema' => 'https://schemas.wp.org/trunk/block.json',
+		'apiVersion' => 3,
+		'name' => 'scm/live-search',
+		'version' => '1.0.0',
+		'title' => 'Live Search',
+		'category' => 'widgets',
+		'icon' => 'search',
+		'description' => 'Search box that narrows Live Query results by title, content and taxonomy terms',
+		'example' => array(
+			
+		),
+		'supports' => array(
+			'html' => false
+		),
+		'ancestor' => array(
+			'scm/live-query'
+		),
+		'attributes' => array(
+			'label' => array(
+				'type' => 'string',
+				'default' => 'Search'
+			),
+			'showLabel' => array(
+				'type' => 'boolean',
+				'default' => false
+			),
+			'placeholder' => array(
+				'type' => 'string',
+				'default' => 'Search...'
+			)
+		),
+		'textdomain' => 'live-search',
+		'editorScript' => 'file:./index.js',
+		'editorStyle' => 'file:./index.css',
+		'style' => 'file:./style-index.css',
+		'viewScript' => 'file:./view.js',
+		'render' => 'file:./index.php'
+	),
 	'live-wrapper' => array(
 		'$schema' => 'https://schemas.wp.org/trunk/block.json',
 		'apiVersion' => 3,
