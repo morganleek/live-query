@@ -1,6 +1,6 @@
 import { __ } from '@wordpress/i18n';
 import { InspectorControls, useBlockProps } from '@wordpress/block-editor';
-import { PanelBody, ToggleControl, TextControl, CheckboxControl, SelectControl } from '@wordpress/components';
+import { PanelBody, ToggleControl, TextControl, CheckboxControl, SelectControl, Button, Flex, FlexBlock } from '@wordpress/components';
 import apiFetch from '@wordpress/api-fetch';
 import './editor.scss';
 import { useEffect, useState } from '@wordpress/element';
@@ -30,12 +30,21 @@ export default function Edit( { attributes, setAttributes } ) {
 			if( !filters.includes( taxonomySlug ) ) { // not if it doesn't exist
 				return;
 			}
-			// const newFilterLabels = 
 			setAttributes( { 
 				filters: filters.filter( filterSlug => filterSlug !== taxonomySlug ),
-				filterLabels: Object.keys( filterLabels ).filter( key => key !== taxonomySlug ).map( key => filterLabels[key] )
+				filterLabels: Object.fromEntries( Object.entries( filterLabels ).filter( ( [ key ] ) => key !== taxonomySlug ) )
 			} );
 		}
+	}
+
+	const moveFilter = ( index, direction ) => {
+		const target = index + direction;
+		if( target < 0 || target >= filters.length ) {
+			return;
+		}
+		const newFilters = [ ...filters ];
+		[ newFilters[index], newFilters[target] ] = [ newFilters[target], newFilters[index] ];
+		setAttributes( { filters: newFilters } );
 	}
 
 	const updateFilterLabel = ( filter, newLabel ) => {
@@ -91,15 +100,31 @@ export default function Edit( { attributes, setAttributes } ) {
 								onChange={ ( state ) => updateFilters( state, slug ) }
 							/>
 						) ) }
-						{ filters.map( filter => (
-							<TextControl
-								__nextHasNoMarginBottom
-								__next40pxDefaultSize
-								type="string"
-								label={ taxonomies[filter].name + " label" }
-								value={ filterLabels[filter] ? filterLabels[filter] : ""}
-								onChange={ ( newLabel ) => updateFilterLabel( filter, newLabel ) }
-							/>
+						{ filters.filter( filter => taxonomies[filter] ).map( ( filter, index, visibleFilters ) => (
+							<Flex key={ filter } align="flex-end">
+								<FlexBlock>
+									<TextControl
+										__nextHasNoMarginBottom
+										__next40pxDefaultSize
+										type="string"
+										label={ taxonomies[filter].name + " label" }
+										value={ filterLabels[filter] ? filterLabels[filter] : ""}
+										onChange={ ( newLabel ) => updateFilterLabel( filter, newLabel ) }
+									/>
+								</FlexBlock>
+								<Button
+									icon="arrow-up-alt2"
+									label={ __( 'Move up' ) }
+									disabled={ index === 0 }
+									onClick={ () => moveFilter( filters.indexOf( filter ), -1 ) }
+								/>
+								<Button
+									icon="arrow-down-alt2"
+									label={ __( 'Move down' ) }
+									disabled={ index === visibleFilters.length - 1 }
+									onClick={ () => moveFilter( filters.indexOf( filter ), 1 ) }
+								/>
+							</Flex>
 						) ) }
 					</PanelBody>
 				) }
