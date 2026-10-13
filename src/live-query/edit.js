@@ -1,6 +1,6 @@
 import { __ } from '@wordpress/i18n';
 import { InspectorControls, useBlockProps } from '@wordpress/block-editor';
-import { PanelBody, RadioControl, TextControl, SelectControl, CheckboxControl, TextareaControl, Spinner } from '@wordpress/components';
+import { PanelBody, RadioControl, TextControl, SelectControl, CheckboxControl, TextareaControl, ToggleControl, Spinner } from '@wordpress/components';
 import apiFetch from '@wordpress/api-fetch';
 import { addQueryArgs } from '@wordpress/url';
 import './editor.scss';
@@ -18,7 +18,7 @@ const TEMPLATE = [
 ];
 
 export default function Edit( { attributes, setAttributes } ) {
-	const { postType, limit, rootURL, params, taxQuery } = attributes;
+	const { postType, limit, rootURL, params, taxQuery, urlRewriteEnabled, urlRewriteFrom, urlRewriteTo } = attributes;
 	const [ postTypeOptions, setPostTypeOptions ] = useState( null );
 	const [ paramsError, setParamsError ] = useState( '' );
 	const [ taxonomies, setTaxonomies ] = useState( null );
@@ -145,6 +145,35 @@ export default function Edit( { attributes, setAttributes } ) {
 						help={ paramsError || 'JSON object of additional params to send with API requests' }
 						rows={ 4 }
 					/>
+					<ToggleControl
+						__nextHasNoMarginBottom
+						label="Rewrite incoming URLs"
+						help={ __( 'Replace a domain found in the fetched post data (links, images, content) with a different domain before rendering.' ) }
+						checked={ urlRewriteEnabled }
+						onChange={ ( newValue ) => setAttributes( { urlRewriteEnabled: newValue } ) }
+					/>
+					{ urlRewriteEnabled && (
+						<>
+							<TextControl
+								__nextHasNoMarginBottom
+								__next40pxDefaultSize
+								type="text"
+								label="Domain to replace"
+								help={ __( 'e.g. aotm.1fo.au' ) }
+								value={ urlRewriteFrom }
+								onChange={ ( newValue ) => setAttributes( { urlRewriteFrom: newValue } ) }
+							/>
+							<TextControl
+								__nextHasNoMarginBottom
+								__next40pxDefaultSize
+								type="text"
+								label="Replacement domain"
+								help={ __( 'e.g. aaot.1fo.au' ) }
+								value={ urlRewriteTo }
+								onChange={ ( newValue ) => setAttributes( { urlRewriteTo: newValue } ) }
+							/>
+						</>
+					) }
 				</PanelBody>
 				{ taxonomies && (
 					<PanelBody title={ __( 'Filters' ) } initialOpen={ Object.keys( taxQueryObj ).length > 0 }>

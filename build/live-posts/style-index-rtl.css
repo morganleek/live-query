@@ -1,12 +1,1 @@
-/*!**************************************************************************************************************************************************************************************************************************************************!*\
-  !*** css ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[4].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[4].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[4].use[3]!./src/live-posts/style.scss ***!
-  \**************************************************************************************************************************************************************************************************************************************************/
-.wp-block-scm-live-posts .post-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(12rem, 100%), 1fr));
-  gap: 2rem 1rem;
-}
-.wp-block-scm-live-posts .post-grid img {
-  max-width: 100%;
-  height: auto;
-}
+.wp-block-scm-live-posts .post-grid{display:grid;gap:2rem 1rem;grid-template-columns:repeat(auto-fill,minmax(min(12rem,100%),1fr))}.wp-block-scm-live-posts .post-grid img{height:auto;max-width:100%}

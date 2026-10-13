@@ -213,6 +213,18 @@ return array(
 			'taxQuery' => array(
 				'type' => 'string',
 				'default' => '{}'
+			),
+			'urlRewriteEnabled' => array(
+				'type' => 'boolean',
+				'default' => false
+			),
+			'urlRewriteFrom' => array(
+				'type' => 'string',
+				'default' => ''
+			),
+			'urlRewriteTo' => array(
+				'type' => 'string',
+				'default' => ''
 			)
 		),
 		'providesContext' => array(

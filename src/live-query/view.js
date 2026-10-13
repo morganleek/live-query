@@ -13,6 +13,43 @@ apiFetch.use(nonceMiddleware);
 
 const stripHtml = (html) => (html || '').replace(/<[^>]+>/g, '');
 
+// Rewrite only <a href> targets within an HTML fragment — img src/srcset (and anything else) is left alone
+const rewriteAnchorHrefs = (html, pattern, toDomain) => {
+	if (!html) {
+		return html;
+	}
+
+	const doc = new DOMParser().parseFromString(html, 'text/html');
+	doc.querySelectorAll('a[href]').forEach((a) => {
+		a.setAttribute('href', a.getAttribute('href').replace(pattern, toDomain));
+	});
+	return doc.body.innerHTML;
+};
+
+// HTML fragments rendered by the block — only their <a href> targets get rewritten
+const POST_HTML_FIELDS = ['content', 'rendered', 'formatted'];
+
+const rewritePostUrls = (post, fromDomain, toDomain) => {
+	const escapedFrom = fromDomain.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+	const pattern = new RegExp(escapedFrom, 'gi');
+
+	const rewritten = { ...post };
+
+	POST_HTML_FIELDS.forEach((field) => {
+		if (typeof rewritten[field] === 'string') {
+			rewritten[field] = rewriteAnchorHrefs(rewritten[field], pattern, toDomain);
+		}
+	});
+
+	// The plain permalink also functions as a link target, so it's rewritten too;
+	// featured_image is intentionally left untouched, same as image URLs inside the HTML fields above
+	if (typeof rewritten.link === 'string') {
+		rewritten.link = rewritten.link.replace(pattern, toDomain);
+	}
+
+	return rewritten;
+};
+
 const refreshNonce = async () => {
 	const res = await window.fetch('/wp-admin/admin-ajax.php', {
 		method: 'POST',
@@ -25,7 +62,7 @@ const refreshNonce = async () => {
 	}
 };
 
-const LivePosts = ({ liveMore, liveFilters, filters, postType, limit, moreLabel, layout, hideEmpty, initFilters, additionalParams = {}, staticTaxQuery = {}, rootUrl }) => {
+const LivePosts = ({ liveMore, liveFilters, filters, postType, limit, moreLabel, layout, hideEmpty, initFilters, additionalParams = {}, staticTaxQuery = {}, rootUrl, urlRewriteEnabled, urlRewriteFrom, urlRewriteTo }) => {
 	const [posts, setPosts] = useState([]);
 	const [filtersLoaded, setFiltersLoaded] = useState(false);
 	const [filtersWithTerms, setFiltersWithTerms] = useState(null);
@@ -150,11 +187,15 @@ const LivePosts = ({ liveMore, liveFilters, filters, postType, limit, moreLabel,
 				return response.json();
 			} )
 			.then((res) => {
+				const fetchedPosts = urlRewriteEnabled && urlRewriteFrom && urlRewriteTo
+					? (res.posts || []).map((post) => rewritePostUrls(post, urlRewriteFrom, urlRewriteTo))
+					: res.posts;
+
 				setTotalPages(parseInt(res.total_pages));
 				setTotalProjects(parseInt(res.total));
 				setCurrentPage(page);
 				setInitialLoad(false);
-				setPosts(page === 1 ? res.posts : [...posts, ...res.posts]);
+				setPosts(page === 1 ? fetchedPosts : [...posts, ...fetchedPosts]);
 				setLoading(false);
 			});
 		} catch (error) {
@@ -402,6 +443,9 @@ domReady(() => {
 		const postType = container.attributes.posttype.value;
 		const limit = parseInt(container.attributes.limit.value);
 		const rootUrl = container.attributes.rooturl.value ? container.attributes.rooturl.value : liveQueryData?.rootUrl;
+		const urlRewriteEnabled = container.attributes.urlrewriteenabled?.value === "1";
+		const urlRewriteFrom = container.attributes.urlrewritefrom?.value || '';
+		const urlRewriteTo = container.attributes.urlrewriteto?.value || '';
 
 		let additionalParams = {};
 		if (container.attributes.params?.value) {
@@ -456,6 +500,9 @@ domReady(() => {
 			rootUrl={rootUrl}
 			additionalParams={additionalParams}
 			staticTaxQuery={staticTaxQuery}
+			urlRewriteEnabled={urlRewriteEnabled}
+			urlRewriteFrom={urlRewriteFrom}
+			urlRewriteTo={urlRewriteTo}
 		// mutliSelect={ mutliSelect }
 		/>);
 	}

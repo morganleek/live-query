@@ -88,6 +88,18 @@
     "taxQuery": {
       "type": "string",
       "default": "{}"
+    },
+    "urlRewriteEnabled": {
+      "type": "boolean",
+      "default": false
+    },
+    "urlRewriteFrom": {
+      "type": "string",
+      "default": ""
+    },
+    "urlRewriteTo": {
+      "type": "string",
+      "default": ""
     }
   },
   "providesContext": {
