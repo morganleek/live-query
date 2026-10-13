@@ -480,7 +480,9 @@ const LivePosts = ({ liveMore, liveFilters, liveSearch, searchLabel, searchPlace
 							{moreLabel}
 						</button>
 					)}
-					<p>Showing {posts.length} out of {totalProjects} posts</p>
+					{ parseInt( posts.length ) > 0 && (
+						<p>Showing {posts.length} out of {totalProjects} posts</p>
+					) }
 				</div>
 			), liveMore)}
 			<>
