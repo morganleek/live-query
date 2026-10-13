@@ -492,7 +492,7 @@ const LivePosts = ({ liveMore, liveFilters, liveSearch, searchLabel, searchPlace
 					</div>
 				) : posts.length === 0 ? (
 					<div className="post-no-results">
-						<p>No posts found matching your criteria.</p>
+						<p>No {postType}s found matching your criteria.</p>
 					</div>
 				) : (
 					<>
