@@ -49,6 +49,14 @@ return array(
 			'layout' => array(
 				'type' => 'string',
 				'default' => 'select'
+			),
+			'collapseMobile' => array(
+				'type' => 'boolean',
+				'default' => false
+			),
+			'toggleLabel' => array(
+				'type' => 'string',
+				'default' => 'Filters'
 			)
 		),
 		'textdomain' => 'live-filters',

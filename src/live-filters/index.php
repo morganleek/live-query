@@ -6,5 +6,7 @@
 	filters='<?php print wp_json_encode( $filterLabels ); ?>'
 	multiSelect='<?php print $multiSelect ? 1 : 0; ?>'
 	hideEmpty='<?php print $hideEmpty ? 1 : 0; ?>'
-	layout='<?php print $layout; ?>'
+	layout='<?php print esc_attr( $layout ); ?>'
+	collapseMobile='<?php print ! empty( $collapseMobile ) ? 1 : 0; ?>'
+	toggleLabel='<?php print esc_attr( $toggleLabel ?? 'Filters' ); ?>'
 ></div>

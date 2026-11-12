@@ -6,7 +6,7 @@ import './editor.scss';
 import { useEffect, useState } from '@wordpress/element';
 
 export default function Edit( { attributes, setAttributes } ) {
-	const { filters, filterLabels, multiSelect, hideEmpty, layout } = attributes;
+	const { filters, filterLabels, multiSelect, hideEmpty, layout, collapseMobile, toggleLabel } = attributes;
 	const [ taxonomies, setTaxonomies ] = useState( null );
 
 	useEffect( () => {
@@ -80,6 +80,22 @@ export default function Edit( { attributes, setAttributes } ) {
             __next40pxDefaultSize
             __nextHasNoMarginBottom
 					/>
+					<ToggleControl
+						checked={ collapseMobile }
+						label="Collapse Filters on Mobile"
+						help="Shows a toggle button on mobile to show and hide the filters (closed by default)."
+						onChange={ ( newValue ) => { setAttributes( { collapseMobile: newValue } ) } }
+						__nextHasNoMarginBottom
+					/>
+					{ collapseMobile && (
+						<TextControl
+							__nextHasNoMarginBottom
+							__next40pxDefaultSize
+							label="Toggle button label"
+							value={ toggleLabel }
+							onChange={ ( newLabel ) => setAttributes( { toggleLabel: newLabel } ) }
+						/>
+					) }
 				</PanelBody>
 				{ taxonomies && (
 					<PanelBody title={ __( 'Filters' ) }>

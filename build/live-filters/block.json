@@ -40,6 +40,14 @@
     "layout": {
       "type": "string",
       "default": "select"
+    },
+    "collapseMobile": {
+      "type": "boolean",
+      "default": false
+    },
+    "toggleLabel": {
+      "type": "string",
+      "default": "Filters"
     }
   },
   "textdomain": "live-filters",

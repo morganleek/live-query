@@ -23,7 +23,7 @@ const refreshNonce = async () => {
 	}
 };
 
-const LivePosts = ({ liveMore, liveFilters, filters, postType, limit, moreLabel, layout, hideEmpty, initFilters, additionalParams = {}, rootUrl }) => {
+const LivePosts = ({ liveMore, liveFilters, filters, postType, limit, moreLabel, layout, hideEmpty, collapseMobile, toggleLabel, initFilters, additionalParams = {}, rootUrl }) => {
 	const [posts, setPosts] = useState([]);
 	const [filtersLoaded, setFiltersLoaded] = useState(false);
 	const [filtersWithTerms, setFiltersWithTerms] = useState(null);
@@ -33,6 +33,7 @@ const LivePosts = ({ liveMore, liveFilters, filters, postType, limit, moreLabel,
 	const [totalProjects, setTotalProjects] = useState(0);
 	const [loading, setLoading] = useState(true);
 	const [initialLoad, setInitialLoad] = useState(true);
+	const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
 	// handle click off
 	const clickDocument = useRef(null);
@@ -241,8 +242,19 @@ const LivePosts = ({ liveMore, liveFilters, filters, postType, limit, moreLabel,
 				<>
 					<div className="posts-header">
 						{filtersWithTerms && (
-							<div className="posts-filters-controls">
-								<div className="live-query-filter-group">
+							<div className={classNames("posts-filters-controls", { "is-collapsible": collapseMobile, "is-open": mobileFiltersOpen })}>
+								{collapseMobile && (
+									<button
+										type="button"
+										className="filters-toggle"
+										aria-expanded={mobileFiltersOpen}
+										aria-controls="live-query-filter-group"
+										onClick={() => setMobileFiltersOpen(!mobileFiltersOpen)}
+									>
+										{toggleLabel}
+									</button>
+								)}
+								<div className="live-query-filter-group" id="live-query-filter-group">
 									{!initialLoad && (
 										<span className="posts-results">Showing {posts.length} posts in</span>
 									)}
@@ -367,6 +379,8 @@ domReady(() => {
 
 		// const mutliSelect = liveFilters && liveFilters.attributes.multiselect.value !== "1" ? false : true;
 		const hideEmpty = liveFilters && liveFilters.attributes.hideempty.value !== "1" ? false : true;
+		const collapseMobile = liveFilters?.attributes.collapsemobile?.value === "1";
+		const toggleLabel = liveFilters?.attributes.togglelabel?.value || "Filters";
 
 		// query args
 		const args = getQueryArgs(window.location.href);
@@ -394,6 +408,8 @@ domReady(() => {
 			moreLabel={moreLabel}
 			layout={layout}
 			hideEmpty={hideEmpty}
+			collapseMobile={collapseMobile}
+			toggleLabel={toggleLabel}
 			rootUrl={rootUrl}
 			additionalParams={additionalParams}
 		// mutliSelect={ mutliSelect }
