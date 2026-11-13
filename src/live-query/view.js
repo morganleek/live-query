@@ -66,7 +66,7 @@ const refreshNonce = async () => {
 const SEARCH_ARG = 'keyword';
 const SEARCH_DEBOUNCE = 400;
 
-const LivePosts = ({ liveMore, liveFilters, liveSearch, searchLabel, searchPlaceholder, searchShowLabel, initSearch = '', filters, postType, limit, moreLabel, layout, hideEmpty, initFilters, additionalParams = {}, staticTaxQuery = {}, rootUrl, urlRewriteEnabled, urlRewriteFrom, urlRewriteTo, collapseMobile, toggleLabel }) => {
+const LivePosts = ({ liveMore, liveFilters, liveSearch, searchLabel, searchPlaceholder, searchShowLabel, initSearch = '', filters, postType, limit, moreLabel, layout, hideEmpty, initFilters, additionalParams = {}, staticTaxQuery = {}, rootUrl, urlRewriteEnabled, urlRewriteFrom, urlRewriteTo, collapseMobile, toggleLabel, liveToast, toastSettings }) => {
 	const [posts, setPosts] = useState([]);
 	const [filtersLoaded, setFiltersLoaded] = useState(false);
 	const [filtersWithTerms, setFiltersWithTerms] = useState(null);
@@ -85,6 +85,10 @@ const LivePosts = ({ liveMore, liveFilters, liveSearch, searchLabel, searchPlace
 	const clickDocument = useRef(null);
 	// id of the latest posts request, so slower stale responses are ignored
 	const latestRequest = useRef(0);
+	const [toast, setToast] = useState(null);
+	// true once the user changes a search/filter, so the toast skips initial load and "load more"
+	const toastPending = useRef(false);
+	const toastTimers = useRef([]);
 
 	// const apiUrl = window.projectFiltersData.apiUrl;
 	const perPage = limit ? limit : 6;
@@ -104,6 +108,7 @@ const LivePosts = ({ liveMore, liveFilters, liveSearch, searchLabel, searchPlace
 		// Clean up event listener on unmount
 		return () => {
 			document.removeEventListener('mousedown', handleClickOutside);
+			toastTimers.current.forEach(clearTimeout);
 		};
 	}, []);
 
@@ -221,6 +226,11 @@ const LivePosts = ({ liveMore, liveFilters, liveSearch, searchLabel, searchPlace
 				setInitialLoad(false);
 				setPosts(page === 1 ? fetchedPosts : [...posts, ...fetchedPosts]);
 				setLoading(false);
+
+				if (page === 1 && toastPending.current) {
+					toastPending.current = false;
+					showToast(parseInt(res.total) || 0);
+				}
 			});
 		} catch (error) {
 			console.error('Error fetching posts:', error);
@@ -253,10 +263,36 @@ const LivePosts = ({ liveMore, liveFilters, liveSearch, searchLabel, searchPlace
 		window.history.pushState({}, "Page", url);
 	}
 
+	const clearToastTimers = () => {
+		toastTimers.current.forEach(clearTimeout);
+		toastTimers.current = [];
+	};
+
+	const dismissToast = () => {
+		clearToastTimers();
+		setToast((current) => current && { ...current, leaving: true });
+		toastTimers.current.push(setTimeout(() => setToast(null), 250));
+	};
+
+	const showToast = (count) => {
+		if (!liveToast || !toastSettings) {
+			return;
+		}
+		const template = count === 0
+			? toastSettings.noResultsMessage
+			: count === 1 ? toastSettings.singularMessage : toastSettings.message;
+		const text = (template || '').replace(/\{count\}/g, count.toLocaleString());
+
+		clearToastTimers();
+		setToast({ id: Date.now(), text, leaving: false });
+		toastTimers.current.push(setTimeout(dismissToast, toastSettings.duration * 1000));
+	};
+
 	const applySearch = (keyword) => {
 		if (keyword === searchTerm) {
 			return;
 		}
+		toastPending.current = true;
 		setCurrentPage(1);
 		setSearchTerm(keyword);
 		setUpdatedURL({}, keyword);
@@ -269,6 +305,7 @@ const LivePosts = ({ liveMore, liveFilters, liveSearch, searchLabel, searchPlace
 
 	const updateSearchTerm = (tax, slug, state) => {
 		setCurrentPage(1);
+		toastPending.current = true;
 
 		const newTaxTerms = {}
 		newTaxTerms[tax] = filtersWithTerms[tax].map(insideTerm => {
@@ -292,6 +329,7 @@ const LivePosts = ({ liveMore, liveFilters, liveSearch, searchLabel, searchPlace
 
 	const clearSearchTerm = (tax) => {
 		setCurrentPage(1);
+		toastPending.current = true;
 
 		const newTaxTerms = {}
 		newTaxTerms[tax] = filtersWithTerms[tax].map(insideTerm => {
@@ -481,6 +519,31 @@ const LivePosts = ({ liveMore, liveFilters, liveSearch, searchLabel, searchPlace
 					</div>
 				</form>
 			), liveSearch)}
+			{liveToast && createPortal((
+				<div
+					className={`live-query-toast-region position-${toastSettings.position}`}
+					role="status"
+					aria-live="polite"
+					aria-atomic="true"
+				>
+					{toast && (
+						<div
+							key={toast.id}
+							className={classNames("live-query-toast", { "is-leaving": toast.leaving })}
+						>
+							<span className="toast-message">{toast.text}</span>
+							<button
+								type="button"
+								className="toast-close"
+								aria-label="Dismiss notification"
+								onClick={dismissToast}
+							>
+								&times;
+							</button>
+						</div>
+					)}
+				</div>
+			), liveToast)}
 			{liveMore && createPortal((
 				<div className="live-posts-more">
 					{hasMoreProjects && (
@@ -531,6 +594,14 @@ domReady(() => {
 		const liveMore = container.querySelector('.wp-block-scm-live-more');
 		const liveFilters = container.querySelector('.wp-block-scm-live-filters');
 		const liveSearch = container.querySelector('.wp-block-scm-live-search');
+		const liveToast = container.querySelector('.wp-block-scm-live-toast');
+		const toastSettings = liveToast ? {
+			message: liveToast.getAttribute('message') || '{count} results found',
+			singularMessage: liveToast.getAttribute('singularmessage') || '{count} result found',
+			noResultsMessage: liveToast.getAttribute('noresultsmessage') || 'No results found',
+			position: liveToast.getAttribute('position') || 'bottom-right',
+			duration: parseFloat(liveToast.getAttribute('duration')) || 4,
+		} : null;
 		// attributes
 		const postType = container.attributes.posttype.value;
 		const limit = parseInt(container.attributes.limit.value);
@@ -609,6 +680,8 @@ domReady(() => {
 			urlRewriteEnabled={urlRewriteEnabled}
 			urlRewriteFrom={urlRewriteFrom}
 			urlRewriteTo={urlRewriteTo}
+			liveToast={liveToast}
+			toastSettings={toastSettings}
 		// mutliSelect={ mutliSelect }
 		/>);
 	}

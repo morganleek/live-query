@@ -1,0 +1,90 @@
+.wp-block-scm-live-toast {
+	.live-query-toast-region {
+		position: fixed;
+		z-index: 9999;
+		display: flex;
+		pointer-events: none;
+		padding: 1rem;
+		max-width: 100%;
+		box-sizing: border-box;
+
+		&.position-top-left     { top: 0; left: 0; }
+		&.position-top-right    { top: 0; right: 0; }
+		&.position-bottom-left  { bottom: 0; left: 0; }
+		&.position-bottom-right { bottom: 0; right: 0; }
+		&.position-top-center,
+		&.position-bottom-center {
+			left: 0;
+			right: 0;
+			justify-content: center;
+		}
+		&.position-top-center    { top: 0; }
+		&.position-bottom-center { bottom: 0; }
+
+		// sit below the admin bar when logged in
+		.admin-bar &[class*="position-top"] {
+			top: 32px;
+			@media (max-width: 782px) {
+				top: 46px;
+			}
+		}
+	}
+
+	.live-query-toast {
+		pointer-events: auto;
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		min-width: 200px;
+		max-width: 360px;
+		padding: 0.75rem 0.75rem 0.75rem 1rem;
+		background: #1e1e1e;
+		color: #fff;
+		border-radius: 4px;
+		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+		font-size: 0.9rem;
+		line-height: 1.4;
+		animation: live-toast-in 0.25s ease-out;
+
+		&.is-leaving {
+			animation: live-toast-out 0.25s ease-in forwards;
+		}
+	}
+
+	.toast-message {
+		flex: 1 1 auto;
+	}
+
+	.toast-close {
+		flex: 0 0 auto;
+		border: 0 none;
+		background: transparent;
+		color: inherit;
+		font-size: 1.25rem;
+		line-height: 1;
+		padding: 0 0.25rem;
+		cursor: pointer;
+		opacity: 0.7;
+		&:hover,
+		&:focus {
+			opacity: 1;
+		}
+	}
+}
+
+@keyframes live-toast-in {
+	from { opacity: 0; transform: translateY(0.5rem); }
+	to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes live-toast-out {
+	from { opacity: 1; transform: translateY(0); }
+	to   { opacity: 0; transform: translateY(0.5rem); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.wp-block-scm-live-toast .live-query-toast,
+	.wp-block-scm-live-toast .live-query-toast.is-leaving {
+		animation-duration: 0.01ms;
+	}
+}

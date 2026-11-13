@@ -284,6 +284,54 @@ return array(
 		'viewScript' => 'file:./view.js',
 		'render' => 'file:./index.php'
 	),
+	'live-toast' => array(
+		'$schema' => 'https://schemas.wp.org/trunk/block.json',
+		'apiVersion' => 3,
+		'name' => 'scm/live-toast',
+		'version' => '1.0.0',
+		'title' => 'Live Toast',
+		'category' => 'widgets',
+		'icon' => 'megaphone',
+		'description' => 'Toast notification showing the number of results found after a Live Query search or filter',
+		'example' => array(
+			
+		),
+		'supports' => array(
+			'html' => false,
+			'multiple' => false
+		),
+		'ancestor' => array(
+			'scm/live-query'
+		),
+		'attributes' => array(
+			'message' => array(
+				'type' => 'string',
+				'default' => '{count} results found'
+			),
+			'singularMessage' => array(
+				'type' => 'string',
+				'default' => '{count} result found'
+			),
+			'noResultsMessage' => array(
+				'type' => 'string',
+				'default' => 'No results found'
+			),
+			'position' => array(
+				'type' => 'string',
+				'default' => 'bottom-right'
+			),
+			'duration' => array(
+				'type' => 'number',
+				'default' => 4
+			)
+		),
+		'textdomain' => 'live-toast',
+		'editorScript' => 'file:./index.js',
+		'editorStyle' => 'file:./index.css',
+		'style' => 'file:./style-index.css',
+		'viewScript' => 'file:./view.js',
+		'render' => 'file:./index.php'
+	),
 	'live-wrapper' => array(
 		'$schema' => 'https://schemas.wp.org/trunk/block.json',
 		'apiVersion' => 3,

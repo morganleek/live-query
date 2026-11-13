@@ -1,0 +1,11 @@
+.wp-block-scm-live-toast {
+	.live-query-toast.is-preview {
+		animation: none;
+		display: inline-flex;
+	}
+	.live-toast-hint {
+		margin: 0.5rem 0 0;
+		font-size: 0.75rem;
+		opacity: 0.6;
+	}
+}

@@ -1,0 +1,46 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "scm/live-toast",
+  "version": "1.0.0",
+  "title": "Live Toast",
+  "category": "widgets",
+  "icon": "megaphone",
+  "description": "Toast notification showing the number of results found after a Live Query search or filter",
+  "example": {},
+  "supports": {
+    "html": false,
+    "multiple": false
+  },
+  "ancestor": [
+    "scm/live-query"
+  ],
+  "attributes": {
+    "message": {
+      "type": "string",
+      "default": "{count} results found"
+    },
+    "singularMessage": {
+      "type": "string",
+      "default": "{count} result found"
+    },
+    "noResultsMessage": {
+      "type": "string",
+      "default": "No results found"
+    },
+    "position": {
+      "type": "string",
+      "default": "bottom-right"
+    },
+    "duration": {
+      "type": "number",
+      "default": 4
+    }
+  },
+  "textdomain": "live-toast",
+  "editorScript": "file:./index.js",
+  "editorStyle": "file:./index.css",
+  "style": "file:./style-index.css",
+  "viewScript": "file:./view.js",
+  "render": "file:./index.php"
+}
