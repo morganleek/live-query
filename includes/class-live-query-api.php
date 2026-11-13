@@ -32,12 +32,19 @@ class Project_Filters_API {
                     'default' => '',
                     // 'sanitize_callback' => 'rest_sanitize_array'
                 ),
+                'static_tax_query' => array(
+                    'default' => '',
+                ),
                 'post_type' => array(
                     'default' => '',
                     'sanitize_callback' => 'sanitize_text_field',
                 ),
                 'date_query' => array(
                     'default' => ''
+                ),
+                'search' => array(
+                    'default' => '',
+                    'sanitize_callback' => 'sanitize_text_field',
                 )
                 // 'industry' => array(
                 //     'default' => '',
@@ -89,7 +96,9 @@ class Project_Filters_API {
         $exclude = $request->get_param('exclude');
         $post_type = $request->get_param('post_type');
         $tax_query = $request->get_param('tax_query');
+        $static_tax_query = $request->get_param('static_tax_query');
         $date_query = $request->get_param('date_query') ?: [];
+        $search = trim( (string) $request->get_param('search') );
 
         if( empty( $post_type ) ) {
             return new WP_REST_Response(array(
@@ -126,6 +135,24 @@ class Project_Filters_API {
 
         if (!empty($tax_query)) {
             foreach( $tax_query as $k => $v ) {
+                if( empty( $v ) ) {
+                    continue;
+                }
+                $tax_query_params[] = array(
+                    'taxonomy' => $k,
+                    'field' => 'slug',
+                    'terms' => $v,
+                );
+            }
+        }
+
+        // Static taxonomy filter set in the block editor; always applied
+        // and independent of the visitor-toggled tax_query above.
+        if (!empty($static_tax_query)) {
+            foreach( $static_tax_query as $k => $v ) {
+                if( empty( $v ) ) {
+                    continue;
+                }
                 $tax_query_params[] = array(
                     'taxonomy' => $k,
                     'field' => 'slug',
@@ -159,11 +186,18 @@ class Project_Filters_API {
         }
 
 
+        // Keyword search across title, content and taxonomy terms; applied by filter_search_where()
+        if ( $search !== '' ) {
+            $args['live_query_search'] = $search;
+        }
+
         // Override any arg
         $args = apply_filters( 'live-query-' . $post_type . '-args', $args );
 
         // Execute query
+        add_filter( 'posts_where', array( $this, 'filter_search_where' ), 10, 2 );
         $query = new WP_Query($args);
+        remove_filter( 'posts_where', array( $this, 'filter_search_where' ), 10 );
         $projects = array();
 
         if ($query->have_posts()) {
@@ -210,6 +244,58 @@ class Project_Filters_API {
             'total_pages' => $query->max_num_pages,
             'current_page' => $page,
         ), 200);
+    }
+
+    /**
+     * Restrict a query to posts where every search word appears in the title,
+     * the content, or the name of a term (in any public taxonomy of the post type)
+     * attached to the post.
+     */
+    public function filter_search_where( $where, $query ) {
+        global $wpdb;
+
+        $search = $query->get( 'live_query_search' );
+        if ( empty( $search ) ) {
+            return $where;
+        }
+
+        $words = array_filter( preg_split( '/\s+/', $search ) );
+        if ( empty( $words ) ) {
+            return $where;
+        }
+
+        $taxonomies = array();
+        foreach ( (array) $query->get( 'post_type' ) as $type ) {
+            foreach ( get_object_taxonomies( $type, 'objects' ) as $taxonomy ) {
+                if ( $taxonomy->public ) {
+                    $taxonomies[] = $taxonomy->name;
+                }
+            }
+        }
+        $taxonomies = array_unique( $taxonomies );
+
+        $clauses = array();
+        foreach ( $words as $word ) {
+            $like = '%' . $wpdb->esc_like( $word ) . '%';
+            $clause = $wpdb->prepare( "{$wpdb->posts}.post_title LIKE %s OR {$wpdb->posts}.post_content LIKE %s", $like, $like );
+
+            if ( !empty( $taxonomies ) ) {
+                $tax_placeholders = implode( ', ', array_fill( 0, count( $taxonomies ), '%s' ) );
+                $clause .= $wpdb->prepare(
+                    " OR {$wpdb->posts}.ID IN (
+                        SELECT tr.object_id FROM {$wpdb->term_relationships} tr
+                        INNER JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id
+                        INNER JOIN {$wpdb->terms} t ON t.term_id = tt.term_id
+                        WHERE tt.taxonomy IN ( $tax_placeholders ) AND t.name LIKE %s
+                    )",
+                    array_merge( $taxonomies, array( $like ) )
+                );
+            }
+
+            $clauses[] = "( $clause )";
+        }
+
+        return $where . ' AND ( ' . implode( ' AND ', $clauses ) . ' )';
     }
 
     /**

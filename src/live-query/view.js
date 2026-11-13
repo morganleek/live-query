@@ -11,6 +11,45 @@ import classNames from 'classnames'
 const nonceMiddleware = apiFetch.createNonceMiddleware(window.wpApiSettings?.nonce ?? '');
 apiFetch.use(nonceMiddleware);
 
+const stripHtml = (html) => (html || '').replace(/<[^>]+>/g, '');
+
+// Rewrite only <a href> targets within an HTML fragment — img src/srcset (and anything else) is left alone
+const rewriteAnchorHrefs = (html, pattern, toDomain) => {
+	if (!html) {
+		return html;
+	}
+
+	const doc = new DOMParser().parseFromString(html, 'text/html');
+	doc.querySelectorAll('a[href]').forEach((a) => {
+		a.setAttribute('href', a.getAttribute('href').replace(pattern, toDomain));
+	});
+	return doc.body.innerHTML;
+};
+
+// HTML fragments rendered by the block — only their <a href> targets get rewritten
+const POST_HTML_FIELDS = ['content', 'rendered', 'formatted'];
+
+const rewritePostUrls = (post, fromDomain, toDomain) => {
+	const escapedFrom = fromDomain.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+	const pattern = new RegExp(escapedFrom, 'gi');
+
+	const rewritten = { ...post };
+
+	POST_HTML_FIELDS.forEach((field) => {
+		if (typeof rewritten[field] === 'string') {
+			rewritten[field] = rewriteAnchorHrefs(rewritten[field], pattern, toDomain);
+		}
+	});
+
+	// The plain permalink also functions as a link target, so it's rewritten too;
+	// featured_image is intentionally left untouched, same as image URLs inside the HTML fields above
+	if (typeof rewritten.link === 'string') {
+		rewritten.link = rewritten.link.replace(pattern, toDomain);
+	}
+
+	return rewritten;
+};
+
 const refreshNonce = async () => {
 	const res = await window.fetch('/wp-admin/admin-ajax.php', {
 		method: 'POST',
@@ -23,20 +62,29 @@ const refreshNonce = async () => {
 	}
 };
 
-const LivePosts = ({ liveMore, liveFilters, filters, postType, limit, moreLabel, layout, hideEmpty, collapseMobile, toggleLabel, initFilters, additionalParams = {}, rootUrl }) => {
+// URL query arg holding the live search keyword — avoids WordPress' reserved `s` / `search` query vars
+const SEARCH_ARG = 'keyword';
+const SEARCH_DEBOUNCE = 400;
+
+const LivePosts = ({ liveMore, liveFilters, liveSearch, searchLabel, searchPlaceholder, searchShowLabel, initSearch = '', filters, postType, limit, moreLabel, layout, hideEmpty, initFilters, additionalParams = {}, staticTaxQuery = {}, rootUrl, urlRewriteEnabled, urlRewriteFrom, urlRewriteTo }) => {
 	const [posts, setPosts] = useState([]);
 	const [filtersLoaded, setFiltersLoaded] = useState(false);
 	const [filtersWithTerms, setFiltersWithTerms] = useState(null);
 	const [expandedFilters, setExpandedFilters] = useState({});
+	const [searchQueries, setSearchQueries] = useState({});
 	const [currentPage, setCurrentPage] = useState(1);
 	const [totalPages, setTotalPages] = useState(1);
 	const [totalProjects, setTotalProjects] = useState(0);
 	const [loading, setLoading] = useState(true);
 	const [initialLoad, setInitialLoad] = useState(true);
 	const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+	const [searchInput, setSearchInput] = useState(initSearch);
+	const [searchTerm, setSearchTerm] = useState(initSearch);
 
 	// handle click off
 	const clickDocument = useRef(null);
+	// id of the latest posts request, so slower stale responses are ignored
+	const latestRequest = useRef(0);
 
 	// const apiUrl = window.projectFiltersData.apiUrl;
 	const perPage = limit ? limit : 6;
@@ -59,12 +107,22 @@ const LivePosts = ({ liveMore, liveFilters, filters, postType, limit, moreLabel,
 		};
 	}, []);
 
-	// Fetch projects when filters change
+	// Fetch projects when filters or the search term change
 	useEffect(() => {
 		if (postType.length > 0 && filtersLoaded) {
 			fetchPosts(1, false);
 		}
-	}, [filtersWithTerms]);
+	}, [filtersWithTerms, searchTerm]);
+
+	// Debounce typing into the search box before it triggers a fetch
+	useEffect(() => {
+		const trimmed = searchInput.trim();
+		if (trimmed === searchTerm) {
+			return;
+		}
+		const timeout = setTimeout(() => applySearch(trimmed), SEARCH_DEBOUNCE);
+		return () => clearTimeout(timeout);
+	}, [searchInput]);
 
 	const fetchTaxonomies = async () => {
 		await refreshNonce();
@@ -107,7 +165,9 @@ const LivePosts = ({ liveMore, liveFilters, filters, postType, limit, moreLabel,
 	};
 
 	const fetchPosts = async (page = 1, append = false) => {
+		const requestId = ++latestRequest.current;
 		await refreshNonce();
+		// let queryParams = { ...additionalParams };
 		setLoading(true);
 
 		const exclude = document.body.classList.contains('single')
@@ -133,8 +193,12 @@ const LivePosts = ({ liveMore, liveFilters, filters, postType, limit, moreLabel,
 				per_page: perPage,
 				post_type: postType,
 				...(exclude && postId && { exclude: postId[1] }),
-				tax_query: taxQuery
+				tax_query: taxQuery,
+				static_tax_query: staticTaxQuery,
+				...(searchTerm && { search: searchTerm })
 			};
+			console.log( params );
+			
 
 			fetch( new Request( rootUrl + addQueryArgs("/live-query/v1/posts", params) ) )
 			.then( response => {
@@ -144,11 +208,18 @@ const LivePosts = ({ liveMore, liveFilters, filters, postType, limit, moreLabel,
 				return response.json();
 			} )
 			.then((res) => {
+				if (requestId !== latestRequest.current) {
+					return;
+				}
+				const fetchedPosts = urlRewriteEnabled && urlRewriteFrom && urlRewriteTo
+					? (res.posts || []).map((post) => rewritePostUrls(post, urlRewriteFrom, urlRewriteTo))
+					: res.posts;
+
 				setTotalPages(parseInt(res.total_pages));
 				setTotalProjects(parseInt(res.total));
 				setCurrentPage(page);
 				setInitialLoad(false);
-				setPosts(page === 1 ? res.posts : [...posts, ...res.posts]);
+				setPosts(page === 1 ? fetchedPosts : [...posts, ...fetchedPosts]);
 				setLoading(false);
 			});
 		} catch (error) {
@@ -164,10 +235,10 @@ const LivePosts = ({ liveMore, liveFilters, filters, postType, limit, moreLabel,
 
 	const baseURL = () => window.location.href.split("?")[0];
 
-	const setUpdatedURL = (newTerms) => {
+	const setUpdatedURL = (newTerms = {}, keyword = searchTerm) => {
 		const taxQuery = {};
 		const allTerms = { ...filtersWithTerms, ...newTerms };
-		Object.keys(allTerms).map(key => {
+		Object.keys(allTerms || {}).map(key => {
 			taxQuery[key] = [];
 			allTerms[key].forEach(t => {
 				if (t.selected === 1) {
@@ -175,8 +246,25 @@ const LivePosts = ({ liveMore, liveFilters, filters, postType, limit, moreLabel,
 				}
 			})
 		});
+		if (keyword) {
+			taxQuery[SEARCH_ARG] = keyword;
+		}
 		const url = addQueryArgs(baseURL(), taxQuery);
 		window.history.pushState({}, "Page", url);
+	}
+
+	const applySearch = (keyword) => {
+		if (keyword === searchTerm) {
+			return;
+		}
+		setCurrentPage(1);
+		setSearchTerm(keyword);
+		setUpdatedURL({}, keyword);
+	}
+
+	const clearSearch = () => {
+		setSearchInput('');
+		applySearch('');
 	}
 
 	const updateSearchTerm = (tax, slug, state) => {
@@ -258,61 +346,141 @@ const LivePosts = ({ liveMore, liveFilters, filters, postType, limit, moreLabel,
 									{!initialLoad && (
 										<span className="posts-results">Showing {posts.length} posts in</span>
 									)}
-									{Object.keys(filtersWithTerms).map(tax => (
-										<div
-											className={classNames(`filter-${layout}`, [`filter-${layout}-${tax}`], { "filter-expanded": expandedFilters[tax] })}
-										>
-											<button
-												className="filter-label"
-												onClick={() => {
-													if (layout === "select") {
-														setExpandedFilters({ ...{ [tax]: !expandedFilters[tax] } })
-													}
-													else {
-														clearSearchTerm(tax)
-													}
-												}}
+									{Object.keys(filtersWithTerms).map(tax => {
+										const selectedTerms = filtersWithTerms[tax].filter(term => term.selected === 1);
+										const searchQuery = searchQueries[tax] || '';
+										const matchingTerms = filtersWithTerms[tax].filter(term => (
+											term.selected !== 1 && stripHtml(term.name).toLowerCase().includes(searchQuery.toLowerCase())
+										));
+
+										return (
+											<div
+												key={tax}
+												className={classNames(`filter-${layout}`, [`filter-${layout}-${tax}`], { "filter-expanded": expandedFilters[tax] })}
 											>
-												{filters[tax] ? filters[tax] : "Select an option"}
-											</button>
-											{expandedFilters[tax] === true && layout === "select" && (
-												<div className="dropdown">
-													{filtersWithTerms[tax].map(term => (
-														<label>
-															<span className="checkbox-wrapper">
+												{layout === "select" ? (
+													<>
+														<span className="filter-label">{filters[tax] ? filters[tax] : "Select an option"}</span>
+														<div
+															className="chip-input"
+															onClick={() => setExpandedFilters({ [tax]: true })}
+														>
+															<div className="chip-list">
+																{selectedTerms.map(term => (
+																	<span className="chip" key={term.slug}>
+																		<span dangerouslySetInnerHTML={{ __html: term.name }} />
+																		<button
+																			type="button"
+																			className="chip-remove"
+																			aria-label={`Remove ${stripHtml(term.name)}`}
+																			onClick={(e) => {
+																				e.stopPropagation();
+																				updateSearchTerm(tax, term.slug, false);
+																			}}
+																		>
+																			&times;
+																		</button>
+																	</span>
+																))}
 																<input
-																	type="checkbox"
-																	onChange={() => updateSearchTerm(tax, term.slug, !term.selected)}
-																	checked={term.selected === 1}
-																	value="1"
+																	type="text"
+																	className="chip-search"
+																	placeholder={selectedTerms.length === 0 ? "Search..." : ""}
+																	value={searchQuery}
+																	onFocus={() => setExpandedFilters({ [tax]: true })}
+																	onChange={(e) => setSearchQueries({ ...searchQueries, [tax]: e.target.value })}
 																/>
-															</span>
-															<span dangerouslySetInnerHTML={{ __html: term.name }} /></label>
-													))}
-												</div>
-											)}
-											{layout === "list" && (
-												filtersWithTerms[tax].map(term => (
-													<label>
-														<span className="checkbox-wrapper">
-															<input
-																type="checkbox"
-																onChange={() => updateSearchTerm(tax, term.slug, !term.selected)}
-																checked={term.selected === 1}
-																value="1"
-															/>
-														</span>
-														{term.name}</label>
-												))
-											)}
-										</div>
-									))}
+															</div>
+														</div>
+														{expandedFilters[tax] === true && (
+															<div className="dropdown">
+																{matchingTerms.length === 0 ? (
+																	<div className="dropdown-empty">No matches found</div>
+																) : (
+																	matchingTerms.map(term => (
+																		<button
+																			type="button"
+																			key={term.slug}
+																			className="dropdown-option"
+																			onClick={() => {
+																				updateSearchTerm(tax, term.slug, true);
+																				setSearchQueries({ ...searchQueries, [tax]: '' });
+																			}}
+																			dangerouslySetInnerHTML={{ __html: term.name }}
+																		/>
+																	))
+																)}
+															</div>
+														)}
+													</>
+												) : (
+													<>
+														<button
+															className="filter-label"
+															onClick={() => clearSearchTerm(tax)}
+														>
+															{filters[tax] ? filters[tax] : "Select an option"}
+														</button>
+														{filtersWithTerms[tax].map(term => (
+															<label key={term.slug}>
+																<span className="checkbox-wrapper">
+																	<input
+																		type="checkbox"
+																		onChange={() => updateSearchTerm(tax, term.slug, !term.selected)}
+																		checked={term.selected === 1}
+																		value="1"
+																	/>
+																</span>
+																{term.name}</label>
+														))}
+													</>
+												)}
+											</div>
+										);
+									})}
 								</div>
 							</div>
 						)}
 					</div>
 				</>
 			), liveFilters)}
+			{liveSearch && createPortal((
+				<form
+					className="live-query-search"
+					role="search"
+					onSubmit={(e) => {
+						e.preventDefault();
+						applySearch(searchInput.trim());
+					}}
+				>
+					<label
+						className={classNames("search-label", { "screen-reader-text": !searchShowLabel })}
+						htmlFor="live-query-search-input"
+					>
+						{searchLabel}
+					</label>
+					<div className="search-field">
+						<input
+							id="live-query-search-input"
+							type="search"
+							className="search-input"
+							placeholder={searchPlaceholder}
+							value={searchInput}
+							onChange={(e) => setSearchInput(e.target.value)}
+						/>
+						{searchInput.length > 0 && (
+							<button
+								type="button"
+								className="search-clear"
+								aria-label="Clear search"
+								onClick={clearSearch}
+							>
+								&times;
+							</button>
+						)}
+					</div>
+				</form>
+			), liveSearch)}
 			{liveMore && createPortal((
 				<div className="live-posts-more">
 					{hasMoreProjects && (
@@ -324,7 +492,9 @@ const LivePosts = ({ liveMore, liveFilters, filters, postType, limit, moreLabel,
 							{moreLabel}
 						</button>
 					)}
-					<p>Showing {posts.length} out of {totalProjects} posts</p>
+					{ parseInt( posts.length ) > 0 && (
+						<p>Showing {posts.length} out of {totalProjects} posts</p>
+					) }
 				</div>
 			), liveMore)}
 			<>
@@ -336,7 +506,7 @@ const LivePosts = ({ liveMore, liveFilters, filters, postType, limit, moreLabel,
 					</div>
 				) : posts.length === 0 ? (
 					<div className="post-no-results">
-						<p>No posts found matching your criteria.</p>
+						<p>No {postType}s found matching your criteria.</p>
 					</div>
 				) : (
 					<>
@@ -360,10 +530,14 @@ domReady(() => {
 	if (livePosts) {
 		const liveMore = container.querySelector('.wp-block-scm-live-more');
 		const liveFilters = container.querySelector('.wp-block-scm-live-filters');
+		const liveSearch = container.querySelector('.wp-block-scm-live-search');
 		// attributes
 		const postType = container.attributes.posttype.value;
 		const limit = parseInt(container.attributes.limit.value);
 		const rootUrl = container.attributes.rooturl.value ? container.attributes.rooturl.value : liveQueryData?.rootUrl;
+		const urlRewriteEnabled = container.attributes.urlrewriteenabled?.value === "1";
+		const urlRewriteFrom = container.attributes.urlrewritefrom?.value || '';
+		const urlRewriteTo = container.attributes.urlrewriteto?.value || '';
 
 		let additionalParams = {};
 		if (container.attributes.params?.value) {
@@ -371,6 +545,15 @@ domReady(() => {
 				additionalParams = JSON.parse(container.attributes.params.value);
 			} catch (e) {
 				console.error('Live Query: invalid additional params JSON', e);
+			}
+		}
+
+		let staticTaxQuery = {};
+		if (container.attributes.taxquery?.value) {
+			try {
+				staticTaxQuery = JSON.parse(container.attributes.taxquery.value);
+			} catch (e) {
+				console.error('Live Query: invalid static taxonomy filter JSON', e);
 			}
 		}
 		const filterlabels = liveFilters ? JSON.parse(liveFilters.attributes.filters.value) : undefined;
@@ -392,6 +575,11 @@ domReady(() => {
 				}
 			});
 		}
+		const initSearch = liveSearch && typeof args[SEARCH_ARG] === 'string' ? args[SEARCH_ARG].trim() : '';
+		const searchLabel = liveSearch?.attributes.label?.value || 'Search';
+		const searchPlaceholder = liveSearch?.attributes.placeholder?.value || '';
+		const searchShowLabel = liveSearch?.attributes.showlabel?.value === "1";
+
 		// const initService = args.service ? args.service : '';
 		// const initIndustry = args.industry ? args.industry : '';
 
@@ -401,6 +589,11 @@ domReady(() => {
 		root.render(<LivePosts
 			liveMore={liveMore}
 			liveFilters={liveFilters}
+			liveSearch={liveSearch}
+			searchLabel={searchLabel}
+			searchPlaceholder={searchPlaceholder}
+			searchShowLabel={searchShowLabel}
+			initSearch={initSearch}
 			filters={filterlabels}
 			initFilters={initFilters}
 			postType={postType}
@@ -412,6 +605,10 @@ domReady(() => {
 			toggleLabel={toggleLabel}
 			rootUrl={rootUrl}
 			additionalParams={additionalParams}
+			staticTaxQuery={staticTaxQuery}
+			urlRewriteEnabled={urlRewriteEnabled}
+			urlRewriteFrom={urlRewriteFrom}
+			urlRewriteTo={urlRewriteTo}
 		// mutliSelect={ mutliSelect }
 		/>);
 	}

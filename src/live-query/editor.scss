@@ -1,0 +1,21 @@
+.live-query-static-tax-wrapper {
+	margin-left: -6px;
+  margin-top: -6px;
+  max-height: 14em;
+  overflow: auto;
+  padding-left: 6px;
+  padding-top: 6px;
+}
+
+.live-query-static-tax {
+	margin-bottom: 12px;
+
+	.components-base-control {
+		margin-bottom: 8px;
+	}
+
+	&-terms {
+		margin-left: 24px;
+		margin-top: 4px;
+	}
+}
