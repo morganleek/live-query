@@ -66,7 +66,7 @@ const refreshNonce = async () => {
 const SEARCH_ARG = 'keyword';
 const SEARCH_DEBOUNCE = 400;
 
-const LivePosts = ({ liveMore, liveFilters, liveSearch, searchLabel, searchPlaceholder, searchShowLabel, initSearch = '', filters, postType, limit, moreLabel, layout, hideEmpty, initFilters, additionalParams = {}, staticTaxQuery = {}, rootUrl, urlRewriteEnabled, urlRewriteFrom, urlRewriteTo }) => {
+const LivePosts = ({ liveMore, liveFilters, liveSearch, searchLabel, searchPlaceholder, searchShowLabel, initSearch = '', filters, postType, limit, moreLabel, layout, hideEmpty, initFilters, additionalParams = {}, staticTaxQuery = {}, rootUrl, urlRewriteEnabled, urlRewriteFrom, urlRewriteTo, collapseMobile, toggleLabel }) => {
 	const [posts, setPosts] = useState([]);
 	const [filtersLoaded, setFiltersLoaded] = useState(false);
 	const [filtersWithTerms, setFiltersWithTerms] = useState(null);
